@@ -1,0 +1,26 @@
+{
+  "id": "ce-v01",
+  "exam": "CE",
+  "year": 2026,
+  "variant": 1,
+  "status": "ocr_draft",
+  "questions": [
+    {
+      "id": "ce-v01-a01",
+      "number": "A1",
+      "part": "A",
+      "blockId": "A1-A4",
+      "type": "single_choice",
+      "prompt": "Демонстрационный текст задания — заменить после сверки",
+      "options": [
+        {"id":"o1","text":"Option 1"},
+        {"id":"o2","text":"Option 2"}
+      ],
+      "points": 1,
+      "sourcePages": [2],
+      "contentStatus": "ocr_draft",
+      "contentVersion": 1
+    }
+  ],
+  "_note": "Файл показывает структуру. Для соответствия schema реальный вариант должен содержать ровно 40 вопросов. Ключи хранятся отдельно и не коммитятся публично."
+}

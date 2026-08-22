@@ -1,0 +1,41 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "assignments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath":"classId","order":"ASCENDING"},
+        {"fieldPath":"status","order":"ASCENDING"},
+        {"fieldPath":"dueAt","order":"DESCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "attempts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath":"assignmentId","order":"ASCENDING"},
+        {"fieldPath":"studentId","order":"ASCENDING"},
+        {"fieldPath":"attemptNo","order":"DESCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "attempts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath":"teacherId","order":"ASCENDING"},
+        {"fieldPath":"status","order":"ASCENDING"},
+        {"fieldPath":"submittedAt","order":"DESCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "questionPublic",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath":"exam","order":"ASCENDING"},
+        {"fieldPath":"variant","order":"ASCENDING"},
+        {"fieldPath":"number","order":"ASCENDING"}
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

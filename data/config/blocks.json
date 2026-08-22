@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "blocks": [
+    {"id":"A1-A4","part":"A","from":1,"to":4,"questionNumbers":["A1","A2","A3","A4"]},
+    {"id":"A5-A8","part":"A","from":5,"to":8,"questionNumbers":["A5","A6","A7","A8"]},
+    {"id":"A9-A12","part":"A","from":9,"to":12,"questionNumbers":["A9","A10","A11","A12"]},
+    {"id":"A13-A14","part":"A","from":13,"to":14,"questionNumbers":["A13","A14"]},
+    {"id":"A15-A18","part":"A","from":15,"to":18,"questionNumbers":["A15","A16","A17","A18"]},
+    {"id":"B1-B3","part":"B","from":1,"to":3,"questionNumbers":["B1","B2","B3"]},
+    {"id":"B4-B6","part":"B","from":4,"to":6,"questionNumbers":["B4","B5","B6"]},
+    {"id":"B7-B8","part":"B","from":7,"to":8,"questionNumbers":["B7","B8"]},
+    {"id":"B9-B18","part":"B","from":9,"to":18,"questionNumbers":["B9","B10","B11","B12","B13","B14","B15","B16","B17","B18"]},
+    {"id":"B19-B22","part":"B","from":19,"to":22,"questionNumbers":["B19","B20","B21","B22"]}
+  ]
+}
