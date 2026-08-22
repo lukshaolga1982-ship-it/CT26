@@ -1,0 +1,27 @@
+import React, {useMemo, useState} from 'react';
+import {createRoot} from 'react-dom/client';
+import './styles.css';
+
+type Role='teacher'|'student';
+type Answer=Record<string,string>;
+const scale:number[]=[0,1,2,3,4,8,12,15,18,21,24,26,28,29,31,32,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,63,64,65,66,68,69,70,72,73,75,77,79,81,84,87,91,95,99,100];
+const questions=[
+ {id:'A1',part:'A',text:'Choose the correct form: She ___ English every day.',options:['study','studies','studying','studied'],key:'studies'},
+ {id:'A2',part:'A',text:'Choose the synonym of “rapid”.',options:['slow','quick','quiet','weak'],key:'quick'},
+ {id:'B1',part:'B',text:'Complete the sentence: I have lived here ___ 2020.',key:'since'},
+ {id:'B2',part:'B',text:'Write the comparative form of “good”.',key:'better'}
+];
+const blocks=['А1–А4','А5–А8','А9–А12','А13–А14','А15–А18','Б1–Б3','Б4–Б6','Б7–Б8','Б9–Б18','Б19–Б22'];
+function App(){
+ const [role,setRole]=useState<Role|null>(null); const [screen,setScreen]=useState<'home'|'test'|'result'>('home');
+ const [answers,setAnswers]=useState<Answer>({}); const [submitted,setSubmitted]=useState(false);
+ const score=useMemo(()=>questions.reduce((s,q)=>s+(answers[q.id]?.trim().toLowerCase()===q.key? (q.part==='A'?1:2):0),0),[answers]);
+ const max=questions.reduce((s,q)=>s+(q.part==='A'?1:2),0);
+ if(!role) return <main className="landing"><section className="hero"><span className="badge">ЦЭ / ЦТ · 2026</span><h1>Английский язык<br/><em>без лишнего стресса</em></h1><p>Интерактивные тесты, тренировки по блокам и понятная аналитика результатов.</p><div className="role"><button onClick={()=>setRole('student')}>Я учащийся</button><button className="secondary" onClick={()=>setRole('teacher')}>Я учитель</button></div><small>Демонстрационная версия · подключение Firebase выполняется отдельно</small></section></main>;
+ if(screen==='test') return <main><Header role={role} logout={()=>setRole(null)}/><div className="wrap"><button className="link" onClick={()=>setScreen('home')}>← Назад</button><div className="testHead"><div><span className="badge">Демо-тест</span><h2>Пробная работа</h2></div><strong>{Object.keys(answers).length}/{questions.length}</strong></div>{questions.map(q=><article className="question" key={q.id}><b>{q.id} · {q.part==='A'?'1 балл':'2 балла'}</b><p>{q.text}</p>{q.options?q.options.map(o=><label className="option" key={o}><input type="radio" name={q.id} checked={answers[q.id]===o} onChange={()=>setAnswers({...answers,[q.id]:o})}/><span>{o}</span></label>):<input className="textInput" value={answers[q.id]||''} onChange={e=>setAnswers({...answers,[q.id]:e.target.value})} placeholder="Введите ответ"/>}</article>)}<button className="submit" onClick={()=>{setSubmitted(true);setScreen('result')}}>Завершить тест</button></div></main>;
+ if(screen==='result') return <main><Header role={role} logout={()=>setRole(null)}/><div className="wrap narrow"><div className="result"><div className="ring">{score}<small>из {max}</small></div><h2>Тест завершён</h2><p>Верных ответов: {questions.filter(q=>answers[q.id]?.trim().toLowerCase()===q.key).length} из {questions.length}</p><p>Для полного теста из 62 баллов применяется шкала: 62 → {scale[62]}.</p><button onClick={()=>{setAnswers({});setSubmitted(false);setScreen('test')}}>Пройти ещё раз</button><button className="secondary" onClick={()=>setScreen('home')}>В кабинет</button></div></div></main>;
+ return <main><Header role={role} logout={()=>setRole(null)}/><div className="wrap"><div className="welcome"><div><span className="badge">{role==='teacher'?'Кабинет учителя':'Кабинет учащегося'}</span><h2>{role==='teacher'?'Здравствуйте, Ольга!':'Готовы к тренировке?'}</h2><p>{role==='teacher'?'Управляйте классами, работами и результатами.':'Выберите тест или тренировочный блок.'}</p></div><div className="scoreCard"><b>{role==='teacher'?'0':'—'}</b><span>{role==='teacher'?'учащихся':'последний результат'}</span></div></div>{role==='teacher'?<><h3>Быстрые действия</h3><div className="grid"><Card icon="＋" title="Создать класс" text="Добавить класс и получить приглашение"/><Card icon="▣" title="Назначить тест" text="Полный вариант, блоки или подборка"/><Card icon="↗" title="Результаты" text="Ошибки, баллы и динамика учащихся"/></div><div className="notice">Для сохранения реальных классов и результатов подключите Firebase Authentication и Firestore.</div></>:<><div className="sectionTitle"><h3>Доступные работы</h3><span>1 работа</span></div><article className="assignment"><div><span className="badge green">Доступно</span><h3>Пробная работа</h3><p>4 демонстрационных задания · без ограничения времени</p></div><button onClick={()=>setScreen('test')}>Начать</button></article><h3>Тренировка по блокам</h3><div className="chips">{blocks.map(b=><button key={b} onClick={()=>setScreen('test')}>{b}</button>)}</div></>}</div></main>
+}
+function Header({role,logout}:{role:Role,logout:()=>void}){return <header><a className="brand" href="/CT26/">CT<span>26</span></a><nav><span>{role==='teacher'?'Учитель':'Учащийся'}</span><button className="secondary small" onClick={logout}>Выйти</button></nav></header>}
+function Card({icon,title,text}:{icon:string,title:string,text:string}){return <article className="card"><i>{icon}</i><h3>{title}</h3><p>{text}</p><button className="secondary">Открыть</button></article>}
+createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>);
