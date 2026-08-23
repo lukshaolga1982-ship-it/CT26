@@ -229,7 +229,7 @@ def docx_option_maps():
                 for offset, value in enumerate(b9_lines):
                     value = re.sub(r"^\s*[BbВв]\s*(?:[lI1]\s*)?[0-9OО]\s*[.]?\s*", "", value)
                     normalized_lines.append(f"B{9 + offset}. {value}")
-                common_b9 = " ".join(normalized_lines)
+                common_b9 = "\n".join(normalized_lines)
                 for task in range(9, 19):
                     option_map[f"B{task}"] = {"context": common_b9}
         if first is not None and stop is not None:
@@ -298,9 +298,7 @@ def docx_option_maps():
         found15 = next((i for i in range(absolute_start, absolute_end) if re.match(r"^[AА]\s*[lI1]\s*5\s*[.]", paragraphs[i])), None)
         a15_context = ""
         if found14 is not None and found15 is not None:
-            option_line = found14 + 1
-            while option_line < found15 and paragraph_objects[option_line].style.name == "List Paragraph":
-                option_line += 1
+            option_line = next((i for i in range(found14 + 1, found15) if re.search(r"(?:^|\s)[12]\s*\)", paragraphs[i]) and re.search(r"(?:^|\s)5\s*\)", paragraphs[i])), found14)
             option_line += 1
             passage = []
             for value in paragraphs[option_line:found15]:
