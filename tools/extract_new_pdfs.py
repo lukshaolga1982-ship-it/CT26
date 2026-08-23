@@ -185,6 +185,21 @@ def clean_layout_questions(test, source_text):
             segment = re.sub(r"\n\s*[A-Z][A-Z '/-]{1,30}\s*$", "", segment)
         q["context"] = clean(segment)
 
+    # B9–B18 form one continuous text. Show that complete text for every
+    # question in the block, just as A1–A4 share one passage.
+    b9_match = label_pattern("B", 9).search(part_b)
+    b19_instruction = re.search(r"(?im)^\s*Прочитайте\s+текст\.\s*От\s+приведенных", part_b)
+    if b9_match:
+        b19_task = label_pattern("B", 19).search(part_b)
+        ends = [match.start() for match in (b19_instruction, b19_task) if match]
+        end = min(ends) if ends else len(part_b)
+        common_b9 = clean(part_b[b9_match.start():end])
+        common_b9 = re.sub(r"\s*\n\s*", " ", common_b9).strip()
+        for number in range(9, 19):
+            item = by_id.get(f"B{number}")
+            if item:
+                item["context"] = common_b9
+
     b19_questions = [by_id.get(f"B{i}") for i in range(19, 23)]
     b19_questions = [q for q in b19_questions if q]
     b19_match = re.search(r"Прочитайте\s+текст\.\s*От\s+приведенных.*?изменить\.\s*", part_b, re.I | re.S)

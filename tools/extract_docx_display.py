@@ -135,7 +135,7 @@ def strip_label(segment, section, number):
 
 
 def build_questions(chunk):
-    part_b_match = re.search(r"(?im)^\s*ЧАСТЬ\s*B\s*$", chunk)
+    part_b_match = re.search(r"(?im)^\s*ЧАСТЬ\s*[BВ]\s*$", chunk)
     part_a = chunk[:part_b_match.start()] if part_b_match else chunk
     part_b = chunk[part_b_match.end():] if part_b_match else ""
     part_a = re.sub(r"(?im)^\s*ЧАСТЬ\s*A\s*$", "", part_a)
@@ -175,6 +175,20 @@ def build_questions(chunk):
         segment = re.split(r"(?im)^\s*Прочитайте\s+", segment, maxsplit=1)[0]
         result.append({"id": f"B{number}", "context": segment})
     b19_match = re.search(r"Прочитайте\s+текст\.\s*От\s+приведенных.*?изменить\.\s*", part_b, re.I | re.S)
+    b9_match = marker("B", 9).search(part_b)
+    if b9_match:
+        b19_task = marker("B", 19).search(part_b)
+        next_instruction = re.search(r"(?im)^\s*Прочитайте\s+текст", part_b[b9_match.end():])
+        next_instruction_pos = b9_match.end() + next_instruction.start() if next_instruction else None
+        ends = [match.start() for match in (b19_match, b19_task) if match]
+        if next_instruction_pos is not None:
+            ends.append(next_instruction_pos)
+        end = min(ends) if ends else len(part_b)
+        common_b9 = clean(part_b[b9_match.start():end])
+        common_b9 = re.sub(r"\s*\n\s*", " ", common_b9).strip()
+        for question in result:
+            if question["id"].startswith("B") and 9 <= int(question["id"][1:]) <= 18:
+                question["context"] = common_b9
     common = clean(part_b[b19_match.end():]) if b19_match else ""
     for number in range(19, 23):
         result.append({"id": f"B{number}", "context": common})
@@ -195,6 +209,29 @@ def docx_option_maps():
         first = next((i for i, value in enumerate(block) if re.match(r"^[AА]\s*[lI1]\s*[.]", value)), None)
         stop = next((i for i, value in enumerate(block[first + 1:], first + 1) if re.match(r"(?i)^Прочитайте\s+предложения", value)), None) if first is not None else None
         option_map = {}
+        # Shared reading passages are stored as native Word paragraphs. Reading
+        # them here prevents preceding parts/instructions from leaking into a
+        # later task when the visible PDF contains unusual spacing.
+        a1_context = next((clean(value) for value in block if re.search(r"\([AА]\s*[lI1]\s*\)", value) and len(value) > 120), "")
+        a9_context = next((clean(value) for value in block if re.search(r"\([AА]\s*9\s*\)", value) and len(value) > 120), "")
+        if a1_context:
+            for task in range(1, 5):
+                option_map[f"A{task}"] = {"context": a1_context}
+        if a9_context:
+            for task in range(9, 13):
+                option_map[f"A{task}"] = {"context": a9_context}
+        b9_index = next((i for i, value in enumerate(block) if re.match(r"^\s*[BВ]\s*9\s*[.]", value)), None)
+        b18_index = next((i for i, value in enumerate(block) if re.match(r"^\s*[BВ]\s*1\s*8\s*[.]", value)), None)
+        if b9_index is not None and b18_index is not None and b18_index >= b9_index:
+            b9_lines = [clean(value) for value in block[b9_index:b18_index + 1] if clean(value)]
+            if len(b9_lines) == 10:
+                normalized_lines = []
+                for offset, value in enumerate(b9_lines):
+                    value = re.sub(r"^\s*[BbВв]\s*(?:[lI1]\s*)?[0-9OО]\s*[.]?\s*", "", value)
+                    normalized_lines.append(f"B{9 + offset}. {value}")
+                common_b9 = " ".join(normalized_lines)
+                for task in range(9, 19):
+                    option_map[f"B{task}"] = {"context": common_b9}
         if first is not None and stop is not None:
             raw = []
             for value in block[first:stop]:
@@ -205,7 +242,7 @@ def docx_option_maps():
                 raw.append(clean(value))
             if len(raw) == 20:
                 for task in range(4):
-                    option_map[f"A{task + 1}"] = {"options": [raw[task * 2], raw[task * 2 + 1], raw[8 + task * 2], raw[9 + task * 2], raw[16 + task]]}
+                    option_map.setdefault(f"A{task + 1}", {}).update({"options": [raw[task * 2], raw[task * 2 + 1], raw[8 + task * 2], raw[9 + task * 2], raw[16 + task]]})
         for task in range(5, 9):
             found = next((i for i, value in enumerate(block) if re.match(rf"^[AА]\s*{task}\s*[.\-]", value)), None)
             if found is None:
@@ -258,6 +295,23 @@ def docx_option_maps():
             if len(dialogue) == 6 and len(choices) == 5:
                 context = "\n".join(f"{chr(65 + i)}. {re.sub(r'^[A-FА-Е]\s*[.]\s*', '', value)}" for i, value in enumerate(dialogue))
                 option_map["A14"] = {"options": choices, "context": context, "prompt": "Расположите реплики так, чтобы получился связный диалог."}
+        found15 = next((i for i in range(absolute_start, absolute_end) if re.match(r"^[AА]\s*[lI1]\s*5\s*[.]", paragraphs[i])), None)
+        a15_context = ""
+        if found14 is not None and found15 is not None:
+            option_line = found14 + 1
+            while option_line < found15 and paragraph_objects[option_line].style.name == "List Paragraph":
+                option_line += 1
+            option_line += 1
+            passage = []
+            for value in paragraphs[option_line:found15]:
+                value = clean(value)
+                if not value:
+                    continue
+                latin = len(re.findall(r"[A-Za-z]", value))
+                cyrillic = len(re.findall(r"[А-Яа-яЁё]", value))
+                if latin > cyrillic:
+                    passage.append(value)
+            a15_context = "\n".join(passage)
         for task in range(15, 19):
             found = next((i for i in range(absolute_start, absolute_end) if re.match(rf"^[AА]\s*[lI1]\s*{task - 10}\s*[.]", paragraphs[i])), None)
             if found is None:
@@ -272,7 +326,10 @@ def docx_option_maps():
                     break
             if len(choices) == 4:
                 prompt = re.sub(r"^[AА]\s*[lI1]\s*[5-8]\s*[.]\s*", "", paragraphs[found])
-                option_map[f"A{task}"] = {"options": choices, "prompt": clean(prompt)}
+                option_map[f"A{task}"] = {"options": choices, "prompt": clean(prompt), "context": a15_context}
+        if a15_context:
+            for task in range(15, 19):
+                option_map.setdefault(f"A{task}", {})["context"] = a15_context
         maps.append(option_map)
     for variant_index, table in enumerate(document.tables[:10]):
         for row_index, row in enumerate(table.rows[:4]):
@@ -283,7 +340,7 @@ def docx_option_maps():
                 if match:
                     values.append(clean(match.group(2)))
             if len(values) == 5:
-                    maps[variant_index][f"A{9 + row_index}"] = {"options": values}
+                    maps[variant_index].setdefault(f"A{9 + row_index}", {}).update({"options": values})
     return maps
 
 
@@ -296,6 +353,11 @@ def main():
         for question in questions:
             if question["id"] in option_maps[variant_index]:
                 question.update(option_maps[variant_index][question["id"]])
+        a15_context = next((q.get("context", "") for q in questions if q["id"] in {"A15", "A16", "A17", "A18"} and q.get("context")), "")
+        if a15_context:
+            for question in questions:
+                if question["id"] in {"A15", "A16", "A17", "A18"}:
+                    question["context"] = a15_context
         tests.append({"year": collection, "number": number, "questions": questions})
     output = ROOT / "data" / "docx-display-tests.js"
     output.write_text("window.DOCX_DISPLAY_TESTS = " + json.dumps(tests, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")
