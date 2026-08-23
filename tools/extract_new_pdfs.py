@@ -121,6 +121,8 @@ def clean_layout_questions(test, source_text):
     choose_matches = list(re.finditer(r"Выберите\s+один\s+из\s+предложенных\s+вариантов\s+ответа\s+в\s+соответствии.*?текста\.", group_a15, re.I | re.S))
     if choose_matches:
         group_a15 = clean(group_a15[:choose_matches[-1].start()])
+    group_a15 = re.sub(r"\(\s*(?:[AА]\s*)?1[5-8]\s*\)", "", group_a15)
+    group_a15 = clean(group_a15)
 
     by_id = {q["id"]: q for q in test["questions"]}
     for number in range(1, 19):

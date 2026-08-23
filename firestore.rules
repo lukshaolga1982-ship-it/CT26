@@ -4,7 +4,7 @@ service cloud.firestore {
     function signedIn() { return request.auth != null; }
     function profile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
     function isTeacher() { return signedIn() && profile().role == 'teacher'; }
-    function isStudent() { return signedIn() && profile().role == 'student'; }
+    function isStudent() { return signedIn() && profile().role == 'student' && (!("active" in profile()) || profile().active == true); }
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || (isTeacher() && resource.data.createdBy == request.auth.uid));
       allow create: if isTeacher() && request.resource.data.role == 'student' && request.resource.data.createdBy == request.auth.uid;

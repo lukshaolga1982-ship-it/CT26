@@ -1,6 +1,6 @@
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, getDocs, query, where, addDoc, setDoc, updateDoc, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, getDocs, query, where, addDoc, setDoc, updateDoc, deleteDoc, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const firebaseApp = initializeApp(window.FIREBASE_CONFIG);
 export const auth = getAuth(firebaseApp);
@@ -41,4 +41,4 @@ export async function createStudent(profile) {
     await deleteApp(secondaryApp).catch(() => {});
   }
 }
-export { collection, doc, getDoc, getDocs, query, where, orderBy, addDoc, setDoc, updateDoc, serverTimestamp };
+export { collection, doc, getDoc, getDocs, query, where, orderBy, addDoc, setDoc, updateDoc, deleteDoc, serverTimestamp };
