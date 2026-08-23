@@ -187,18 +187,17 @@ def clean_layout_questions(test, source_text):
 
     # B9–B18 form one continuous text. Show that complete text for every
     # question in the block, just as A1–A4 share one passage.
-    b9_match = label_pattern("B", 9).search(part_b)
-    b19_instruction = re.search(r"(?im)^\s*Прочитайте\s+текст\.\s*От\s+приведенных", part_b)
-    if b9_match:
-        b19_task = label_pattern("B", 19).search(part_b)
-        ends = [match.start() for match in (b19_instruction, b19_task) if match]
-        end = min(ends) if ends else len(part_b)
-        common_b9 = clean(part_b[b9_match.start():end])
-        common_b9 = re.sub(r"\s*\n\s*", " ", common_b9).strip()
+    b9_lines = []
+    for number in range(9, 19):
+        item = by_id.get(f"B{number}")
+        if item and item.get("context"):
+            line = re.sub(r"\s*\n\s*", " ", clean(item["context"])).strip()
+            line = re.sub(rf"^\s*[BВ]\s*{number}\s*[.]\s*", "", line, flags=re.I)
+            b9_lines.append(f"B{number}. {line}")
+    if len(b9_lines) == 10:
+        common_b9 = "\n".join(b9_lines)
         for number in range(9, 19):
-            item = by_id.get(f"B{number}")
-            if item:
-                item["context"] = common_b9
+            by_id[f"B{number}"]["context"] = common_b9
 
     b19_questions = [by_id.get(f"B{i}") for i in range(19, 23)]
     b19_questions = [q for q in b19_questions if q]

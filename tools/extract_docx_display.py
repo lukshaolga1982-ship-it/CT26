@@ -232,6 +232,14 @@ def docx_option_maps():
                 common_b9 = "\n".join(normalized_lines)
                 for task in range(9, 19):
                     option_map[f"B{task}"] = {"context": common_b9}
+        b19_context = next((clean(value) for value in block
+                            if re.search(r"\(\s*[BВ]\s*1\s*9\s*\)", value)
+                            and re.search(r"\(\s*[BВ]\s*2\s*2\s*\)", value)
+                            and len(value) > 150), "")
+        if b19_context:
+            b19_context = re.sub(r"\(\s*[BВ]\s*(1\s*9|2\s*[0-2])\s*\)", lambda match: f"(B{re.sub(r'\s+', '', match.group(1))})", b19_context)
+            for task in range(19, 23):
+                option_map[f"B{task}"] = {"context": b19_context}
         if first is not None and stop is not None:
             raw = []
             for value in block[first:stop]:
