@@ -93,6 +93,27 @@ const docxVariants=[
   ...tests2026.slice(0,5).map(t=>({...t,id:`ce-2026-v${t.number}`,title:`Вариант ${t.number}`,year:"ЦЭ 2026",number:t.number,questionCount:40,structure:"A1–A18 · B1–B22",maxPrimary:62,status:"ready"})),
   ...tests2026.slice(5,10).map((t,index)=>({...t,id:`ct-2026-v${index+1}`,title:`Вариант ${index+1}`,year:"ЦТ 2026",number:index+1,questionCount:40,structure:"A1–A18 · B1–B22",maxPrimary:62,status:"ready"}))
 ];
+const normalizedAnswer=value=>String(value??"").toLowerCase().replace(/\s+([.,!?;:])/g,"$1").replace(/[\s’‘`–—-]+/g," ").replace(/[.,!?;:]+$/g,"").trim();
+for(const test of docxVariants){
+  const display=(window.DOCX_DISPLAY_TESTS||[]).find(item=>item.year===test.year&&item.number===test.number);
+  if(!display)continue;
+  test.questions=test.questions.map(original=>{
+    const fresh=display.questions.find(item=>item.id===original.id);
+    if(!fresh)return original;
+    const question={...original};
+    if(fresh.prompt)question.prompt=fresh.prompt;
+    if(fresh.context)question.context=fresh.context;
+    if(Array.isArray(fresh.options)&&fresh.options.length){
+      const oldAnswer=String(original.answer??"");
+      const numeric=/^[1-5]$/.test(oldAnswer)?Number(oldAnswer)-1:null;
+      const matched=fresh.options.find(option=>normalizedAnswer(option)===normalizedAnswer(oldAnswer));
+      question.options=fresh.options;
+      question.answer=matched??(numeric!==null?fresh.options[numeric]:oldAnswer);
+      question.accepted=[question.answer];
+    }
+    return question;
+  });
+}
 const pdfVariants=(window.NEW_PDF_TESTS||[]).map(test=>({...test,maxPrimary:62,status:"ready"}));
 const variants=[...docxVariants,...pdfVariants];
 
