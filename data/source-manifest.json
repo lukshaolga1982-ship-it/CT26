@@ -1,0 +1,10 @@
+{
+  "collections": [
+    {"year": 2020, "file": "ЦТ 2020+.pdf", "variants": 10, "structure": "A1-A48, B1-B12", "textLayer": true, "importStatus": "source-added-review-required"},
+    {"year": 2021, "file": "ЦТ 2021.pdf", "variants": 10, "structure": "A1-A30, B1-B18", "textLayer": true, "importStatus": "source-added-review-required"},
+    {"year": 2022, "file": "ЦТ 2022.pdf", "variants": 10, "structure": "A1-A30, B1-B18", "textLayer": false, "importStatus": "ocr-and-review-required"},
+    {"year": 2023, "file": "цт 2023.pdf", "variants": 6, "structure": "A1-A18, B1-B22", "textLayer": false, "importStatus": "ocr-and-review-required"},
+    {"year": 2024, "file": "цт 2024.pdf", "variants": 10, "structure": "A1-A18, B1-B22", "textLayer": true, "importStatus": "source-added-review-required"},
+    {"year": 2026, "file": "сборник цэ цт англ 2026_compressed.pdf", "variants": 10, "structure": "A1-A18, B1-B22", "textLayer": false, "importStatus": "ocr-and-review-required"}
+  ]
+}

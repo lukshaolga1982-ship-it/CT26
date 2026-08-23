@@ -1,0 +1,1 @@
+{"indexes":[{"collectionGroup":"attempts","queryScope":"COLLECTION","fields":[{"fieldPath":"teacherId","order":"ASCENDING"},{"fieldPath":"submittedAt","order":"DESCENDING"}]},{"collectionGroup":"assignments","queryScope":"COLLECTION","fields":[{"fieldPath":"teacherId","order":"ASCENDING"},{"fieldPath":"dueAt","order":"DESCENDING"}]}],"fieldOverrides":[]}

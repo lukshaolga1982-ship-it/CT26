@@ -1,0 +1,53 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function profile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function isTeacher() { return signedIn() && profile().role == 'teacher'; }
+    function isStudent() { return signedIn() && profile().role == 'student'; }
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || (isTeacher() && resource.data.createdBy == request.auth.uid));
+      allow create: if isTeacher() && request.resource.data.role == 'student' && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isTeacher() && resource.data.createdBy == request.auth.uid && request.resource.data.role == resource.data.role;
+      allow delete: if false;
+    }
+    match /groups/{id} {
+      allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
+      allow update, delete: if isTeacher() && resource.data.teacherId == request.auth.uid;
+      allow read: if isTeacher() && resource.data.teacherId == request.auth.uid;
+      allow read: if isStudent() && resource.data.teacherId == profile().createdBy;
+    }
+    match /tests/{testId} {
+      allow read: if signedIn() && resource.data.status == 'published' || isTeacher();
+      allow write: if isTeacher();
+      match /questions/{questionId} { allow read: if signedIn(); allow write: if isTeacher(); }
+    }
+    match /answerKeys/{testId} { allow read, write: if isTeacher(); }
+    match /invites/{id} { allow read, write: if isTeacher(); }
+    match /assignments/{id} {
+      allow read: if isTeacher() && resource.data.teacherId == request.auth.uid
+                  || isStudent() && (request.auth.uid in resource.data.studentIds || profile().groupId in resource.data.groupIds);
+      allow write: if isTeacher();
+    }
+    match /attempts/{id} {
+      allow read: if signedIn() && (resource.data.studentId == request.auth.uid
+                  || isTeacher() && resource.data.teacherId == request.auth.uid);
+      allow create: if isStudent() && request.resource.data.studentId == request.auth.uid
+                    && request.resource.data.teacherId == profile().createdBy
+                    && request.resource.data.status == 'in-progress';
+      allow update: if isStudent() && resource.data.studentId == request.auth.uid
+                    && resource.data.status == 'in-progress'
+                    && request.resource.data.studentId == resource.data.studentId
+                    && request.resource.data.teacherId == resource.data.teacherId
+                    && request.resource.data.status in ['in-progress', 'submitted'];
+      allow update: if isTeacher() && resource.data.teacherId == request.auth.uid;
+      allow delete: if false;
+      match /answers/{questionId} {
+        allow read: if signedIn() && (get(/databases/$(database)/documents/attempts/$(id)).data.studentId == request.auth.uid || isTeacher());
+        allow write: if isStudent() && get(/databases/$(database)/documents/attempts/$(id)).data.studentId == request.auth.uid
+                     && get(/databases/$(database)/documents/attempts/$(id)).data.status == 'in-progress';
+      }
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}
