@@ -51,7 +51,7 @@ service cloud.firestore {
     match /messages/{id} {
       allow read: if signedIn() && (
         (isTeacher() && resource.data.teacherId == request.auth.uid) ||
-        (isStudent() && resource.data.studentId == request.auth.uid && resource.data.teacherId == profile().createdBy)
+        (isStudent() && resource.data.studentId == request.auth.uid)
       );
       allow create: if signedIn()
         && request.resource.data.senderId == request.auth.uid
