@@ -41,7 +41,7 @@ service cloud.firestore {
                     && request.resource.data.teacherId == resource.data.teacherId
                     && request.resource.data.status in ['in-progress', 'scored'];
       allow update: if isTeacher() && resource.data.teacherId == request.auth.uid;
-      allow delete: if false;
+      allow delete: if isTeacher() && resource.data.teacherId == request.auth.uid;
       match /answers/{questionId} {
         allow read: if signedIn() && (get(/databases/$(database)/documents/attempts/$(id)).data.studentId == request.auth.uid || isTeacher());
         allow write: if isStudent() && get(/databases/$(database)/documents/attempts/$(id)).data.studentId == request.auth.uid
