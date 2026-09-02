@@ -48,6 +48,30 @@ service cloud.firestore {
                      && get(/databases/$(database)/documents/attempts/$(id)).data.status == 'in-progress';
       }
     }
+    match /messages/{id} {
+      allow read: if signedIn() && (
+        (isTeacher() && resource.data.teacherId == request.auth.uid) ||
+        (isStudent() && resource.data.studentId == request.auth.uid && resource.data.teacherId == profile().createdBy)
+      );
+      allow create: if signedIn()
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 3000
+        && (
+          (isTeacher() && request.resource.data.teacherId == request.auth.uid
+            && get(/databases/$(database)/documents/users/$(request.resource.data.studentId)).data.createdBy == request.auth.uid) ||
+          (isStudent() && request.resource.data.studentId == request.auth.uid
+            && request.resource.data.teacherId == profile().createdBy)
+        );
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readByTeacher', 'readByStudent'])
+        && (
+          (isTeacher() && resource.data.teacherId == request.auth.uid) ||
+          (isStudent() && resource.data.studentId == request.auth.uid)
+        );
+      allow delete: if false;
+    }
     match /{document=**} { allow read, write: if false; }
   }
 }
