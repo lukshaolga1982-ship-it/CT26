@@ -9,4 +9,4 @@ window.FIREBASE_CONFIG = {
 };
 
 // Вставьте сюда URL опубликованного Google Apps Script из файла google-apps-script/Code.gs.
-window.EMAIL_NOTIFICATION_URL = "";
+window.EMAIL_NOTIFICATION_URL = "https://script.google.com/macros/s/AKfycbzAmP998bHMyOP9W8d9gFMl2Po2cCL18-mPkCiY9jNZfoYPU2SZTSBkmndF8BcUV-X67Q/exec";
