@@ -1,8 +1,9 @@
 import { auth, db, watchAuth, loginWithStudentLogin, loginWithTeacherEmail, logout, createStudent, collection, doc, getDoc, getDocs, query, where, addDoc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "./firebase-service.js";
 
+const LIBRARY_API="https://ct26-library-api.lukshaolga1982.workers.dev";
 const $ = (s, p=document) => p.querySelector(s);
 const app = $("#app");
-const state = {view:"dashboard",role:"teacher",loginRole:"student",user:null,authLoading:true,year:"ЦЭ 2026",test:null,index:0,answers:{},optionOrder:{},timer:null,seconds:120*60,students:[],attempts:[],customTests:[],builtInOverrides:[],messages:[],messageStudentId:null,attemptId:null,saveTimer:null,revisionErrors:new Set(),revisionComments:{}};
+const state = {view:"dashboard",role:"teacher",loginRole:"student",user:null,authLoading:true,year:"ЦЭ 2026",test:null,index:0,answers:{},optionOrder:{},timer:null,seconds:120*60,students:[],attempts:[],customTests:[],builtInOverrides:[],messages:[],books:[],reviews:[],messageStudentId:null,attemptId:null,saveTimer:null,revisionErrors:new Set(),revisionComments:{}};
 const scale={0:0,1:1,2:2,3:3,4:4,5:8,6:12,7:15,8:18,9:21,10:24,11:26,12:28,13:29,14:31,15:32,16:34,17:35,18:36,19:37,20:38,21:39,22:40,23:41,24:42,25:43,26:44,27:45,28:46,29:47,30:48,31:49,32:50,33:51,34:52,35:53,36:54,37:55,38:56,39:57,40:58,41:59,42:60,43:61,44:63,45:64,46:65,47:66,48:68,49:69,50:70,51:72,52:73,53:75,54:77,55:79,56:81,57:84,58:87,59:91,60:95,61:99,62:100};
 // Отметка ЦЭ определяется по тестовому (стобалльному) результату.
 const ceGradeRanges=[[1,0,1],[2,2,2],[3,3,10],[4,11,20],[5,21,29],[6,30,37],[7,38,47],[8,48,65],[9,66,79],[10,80,100]];
@@ -10,8 +11,8 @@ function ceGrade(score){if(score===null||score===undefined||score==='')return nu
 function attemptGrade(attempt){return Number(attempt.maxPrimary??62)===62?ceGrade(attempt.testScore):null}
 function gradeDisplay(attempt){const grade=attemptGrade(attempt);return grade===null?'—':`${grade} / 10`}
 const icons={dash:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',tests:'<svg viewBox="0 0 24 24"><path d="M6 3h12v18H6z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>',users:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-4 2-6 6-6s6 2 6 6M16 5c3 0 4 2 4 4s-1 3-3 3M17 14c3 0 4 2 4 5"/></svg>',chart:'<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>'};
-const teacherNav=[['dashboard','Главная','dash'],['tests','Тесты','tests'],['students','Учащиеся','users'],['results','Результаты','chart'],['messages','Сообщения','users']];
-const studentNav=[['student-home','Главная','dash'],['tests','Тесты','tests'],['student-results','Мои результаты','chart'],['mistakes','Мои ошибки','users'],['messages','Сообщения','users']];
+const teacherNav=[['dashboard','Главная','dash'],['tests','Тесты','tests'],['students','Учащиеся','users'],['results','Результаты','chart'],['messages','Сообщения','users'],['library','Справочник','tests']];
+const studentNav=[['student-home','Главная','dash'],['tests','Тесты','tests'],['student-results','Мои результаты','chart'],['mistakes','Мои ошибки','users'],['messages','Сообщения','users'],['library','Справочник','tests']];
 
 function shell(content,title,eyebrow='Кабинет учителя'){
   const nav=state.user.role==='teacher'?teacherNav:studentNav;const initials=state.user.name.split(' ').map(x=>x[0]).slice(0,2).join('');
@@ -19,7 +20,7 @@ function shell(content,title,eyebrow='Кабинет учителя'){
   return `<div class="shell"><aside class="sidebar" id="sidebar"><div class="logo"><div class="logo-mark">ЦТ</div><div class="logo-copy"><strong>Английский язык</strong><span>ЦЭ / ЦТ · 2020–2026</span></div></div><nav class="nav">${nav.map(([id,label,ic])=>`<button data-view="${id}" class="${state.view===id?'active':''}">${icons[ic]}${label}${id==='messages'&&unread?`<b class="unread-badge">${unread}</b>`:''}</button>`).join('')}</nav><div class="sidebar-foot"><div class="user-mini"><div class="avatar">${initials}</div><div><strong>${state.user.name}</strong><span>${state.user.role==='teacher'?'Учитель':state.user.group}</span></div><button class="logout" id="logout" title="Выйти">↗</button></div></div></aside><main class="main"><header class="topbar"><div style="display:flex;align-items:center;gap:12px"><button class="mobile-menu" id="menuBtn">☰</button><div><p class="eyebrow">${eyebrow}</p><h1>${title}</h1></div></div><div class="actions"><button class="icon-btn" aria-label="Уведомления">⌁</button>${state.user.role==='teacher'?'<button class="primary" id="createStudentTop">+ Создать ученика</button>':''}</div></header>${content}</main><nav class="mobile-bar">${nav.map(([id,label])=>`<button data-view="${id}" class="${state.view===id?'active':''}">${label}${id==='messages'&&unread?` (${unread})`:''}</button>`).join('')}</nav></div>`;
 }
 
-function render(){clearInterval(state.timer);if(state.authLoading){app.innerHTML='<main class="loading-screen"><div class="logo-mark">ЦТ</div><p>Загрузка кабинета…</p></main>';return}if(!state.user)return renderLogin();if(state.view==='test')return renderTest();if(state.view==='result')return renderResult();const views={dashboard:dashboard(),tests:tests(),students:students(),results:results(),messages:messagesView(),'student-home':studentDashboard(),'student-results':studentResults(),mistakes:mistakes()};const titles={dashboard:`Добрый вечер, ${state.user.name.split(' ')[0]}!`,tests:state.user.role==='teacher'?'Банк тестов':'Доступные тесты',students:'Учащиеся',results:'Результаты',messages:'Сообщения','student-home':`Привет, ${state.user.name.split(' ')[0]}!`,'student-results':'Мои результаты',mistakes:'Мои ошибки'};app.innerHTML=shell(views[state.view],titles[state.view],state.user.role==='teacher'?'Кабинет учителя':'Кабинет ученика');bindCommon();bindListFilters();if(state.view==='messages')markConversationRead();}
+function render(){clearInterval(state.timer);if(state.authLoading){app.innerHTML='<main class="loading-screen"><div class="logo-mark">ЦТ</div><p>Загрузка кабинета…</p></main>';return}if(!state.user)return renderLogin();if(state.view==='test')return renderTest();if(state.view==='result')return renderResult();const views={dashboard:dashboard(),tests:tests(),students:students(),results:results(),messages:messagesView(),library:libraryView(),'student-home':studentDashboard(),'student-results':studentResults(),mistakes:mistakes()};const titles={dashboard:`Добрый вечер, ${state.user.name.split(' ')[0]}!`,tests:state.user.role==='teacher'?'Банк тестов':'Доступные тесты',students:'Учащиеся',results:'Результаты',messages:'Сообщения',library:'Справочник','student-home':`Привет, ${state.user.name.split(' ')[0]}!`,'student-results':'Мои результаты',mistakes:'Мои ошибки'};app.innerHTML=shell(views[state.view],titles[state.view],state.user.role==='teacher'?'Кабинет учителя':'Кабинет ученика');bindCommon();bindListFilters();if(state.view==='messages')markConversationRead();if(state.view==='library')bindLibrary();}
 function bindCommon(){document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{state.view=b.dataset.view;render()});$('#menuBtn')?.addEventListener('click',()=>$('#sidebar').classList.toggle('open'));$('#createStudentTop')?.addEventListener('click',createStudentModal);$('#logout')?.addEventListener('click',async()=>{await logout();state.view='dashboard'});document.querySelectorAll('[data-start]').forEach(b=>b.onclick=()=>startTest("ЦЭ 2026",+b.dataset.start));document.querySelectorAll('[data-year]').forEach(b=>b.onclick=()=>{state.year=b.dataset.year;render()});document.querySelectorAll('[data-open-test]').forEach(b=>b.onclick=()=>{const variant=builtInById(b.dataset.openTest);if(variant?.status==='ready')launchTest(variant);else if(variant)sourceModal(variant)});document.querySelectorAll('[data-custom-test]').forEach(b=>b.onclick=()=>startCustomTest(b.dataset.customTest));document.querySelectorAll('[data-edit-test]').forEach(b=>b.onclick=()=>editCustomTest(b.dataset.editTest));document.querySelectorAll('[data-edit-built-in]').forEach(b=>b.onclick=()=>editBuiltInTest(b.dataset.editBuiltIn));document.querySelectorAll('[data-delete-test]').forEach(b=>b.onclick=()=>confirmDeleteTest(b.dataset.deleteTest));document.querySelectorAll('[data-delete-student]').forEach(b=>b.onclick=()=>confirmDeleteStudent(b.dataset.deleteStudent));$('#buildFromReady')?.addEventListener('click',customTestBuilderModal);$('#createManualTest')?.addEventListener('click',()=>manualTestModal());document.querySelectorAll('[data-modal]').forEach(b=>b.onclick=()=>assignmentModal(b.dataset.modal));document.querySelectorAll('[data-review-attempt]').forEach(b=>b.onclick=()=>reviewAttempt(b.dataset.reviewAttempt));document.querySelectorAll('[data-delete-attempt]').forEach(b=>b.onclick=()=>confirmDeleteAttempt(b.dataset.deleteAttempt));document.querySelectorAll('[data-attempt-errors]').forEach(b=>b.onclick=()=>showAttemptErrors(b.dataset.attemptErrors));document.querySelectorAll('[data-error-detail]').forEach(b=>b.onclick=()=>showErrorDetail(b.dataset.errorDetail,b.dataset.questionId));document.querySelectorAll('[data-resume-attempt]').forEach(b=>b.onclick=()=>resumeAttempt(b.dataset.resumeAttempt));document.querySelectorAll('[data-student-errors]').forEach(b=>b.onclick=()=>showStudentErrors(b.dataset.studentErrors));document.querySelectorAll('[data-student-attempts]').forEach(b=>b.onclick=()=>showStudentAttempts(b.dataset.studentAttempts));document.querySelectorAll('[data-message-student]').forEach(b=>b.onclick=()=>{state.messageStudentId=b.dataset.messageStudent;render()});$('#sendMessage')?.addEventListener('click',sendMessage);}
 
 function renderLogin(){app.innerHTML=`<main class="login-page"><section class="brand-panel"><div class="login-brand"><div class="logo-mark">ЦТ</div><span>Английский язык</span></div><div><p class="eyebrow">Подготовка к ЦЭ и ЦТ</p><h1>Все тесты.<br>Весь прогресс.<br>В одном месте.</h1><p>Решайте варианты по годам, повторяйте ошибки и следите за результатом.</p></div><b>2020 — 2026</b></section><section class="login-side"><form class="login-card" id="loginForm"><p class="eyebrow">Добро пожаловать</p><h2>Вход в личный кабинет</h2><p>${state.loginRole==='teacher'?'Введите электронную почту учителя и пароль Firebase.':'Введите логин и пароль, которые выдал учитель.'}</p><div class="role-switch"><button type="button" data-role="student" class="${state.loginRole==='student'?'active':''}">Ученик</button><button type="button" data-role="teacher" class="${state.loginRole==='teacher'?'active':''}">Учитель</button></div><div class="field"><label>${state.loginRole==='teacher'?'Email':'Логин'}</label><input id="login" autocomplete="username" placeholder="${state.loginRole==='teacher'?'lukshaolga1982@gmail.com':'Введите логин'}" required></div><div class="field"><label>Пароль</label><div class="password-field"><input id="password" type="password" autocomplete="current-password" placeholder="Введите пароль" required><button type="button" id="showPassword">Показать</button></div></div><div id="loginError" class="login-error"></div><button class="primary login-submit" type="submit">Войти</button></form></section></main>`;document.querySelectorAll('[data-role]').forEach(b=>b.onclick=()=>{state.loginRole=b.dataset.role;renderLogin()});$('#showPassword').onclick=()=>{const p=$('#password');p.type=p.type==='password'?'text':'password'};$('#loginForm').onsubmit=async e=>{e.preventDefault();const button=e.submitter;button.disabled=true;button.textContent='Вход…';$('#loginError').textContent='';try{if(state.loginRole==='teacher')await loginWithTeacherEmail($('#login').value,$('#password').value);else await loginWithStudentLogin($('#login').value,$('#password').value)}catch(error){console.error(error);$('#loginError').textContent='Не удалось войти. Проверьте логин, пароль и выбранную роль.';button.disabled=false;button.textContent='Войти'}}}
@@ -221,6 +222,7 @@ async function loadAccountData(){
   if(!state.user)return;
   await loadCustomTests();
   await loadMessages();
+  await loadLibrary();
   if(state.user.role==='teacher'){
     const [studentDocs,attemptDocs]=await Promise.all([
       getDocs(query(collection(db,"users"),where("createdBy","==",state.user.uid))),
@@ -256,3 +258,66 @@ watchAuth(async firebaseUser=>{
 });
 
 window.startTest=startTest;window.createStudentModal=createStudentModal;window.toast=toast;render();
+
+
+// Библиотека PDF: файлы в R2; метаданные и назначения в Firestore.
+async function libraryRequest(path,options={}){
+ const token=await auth.currentUser.getIdToken();
+ const response=await fetch(`${LIBRARY_API}${path}`,{...options,headers:{Authorization:`Bearer ${token}`,...options.headers}});
+ if(!response.ok){let error;try{error=(await response.json()).error}catch{}throw new Error(error||`Ошибка API: ${response.status}`)}
+ return response;
+}
+async function loadLibrary(){
+ try{
+  const owner=state.user.role==='teacher'?state.user.uid:state.user.createdBy;
+  const [books,reviews]=await Promise.all([
+   getDocs(query(collection(db,'libraryBooks'),where('teacherId','==',owner))),
+   getDocs(query(collection(db,'libraryReviews'),where('teacherId','==',owner)))
+  ]);
+  state.books=books.docs.map(d=>({id:d.id,...d.data()}));
+  state.reviews=reviews.docs.map(d=>({id:d.id,...d.data()}));
+ }catch(e){console.error('Справочник:',e);state.books=[];state.reviews=[]}
+}
+function reviewTargets(review){return review.studentIds?.includes(state.user.uid)||review.groupIds?.includes(state.user.group)||review.allStudents===true}
+function libraryView(){
+ const teacher=state.user.role==='teacher';
+ const books=state.books.map(b=>`<article class="card"><h3>📘 ${escapeAttr(b.title)}</h3><p>${escapeAttr(b.description||'PDF-справочник')}</p><div class="library-actions"><button class="secondary" data-book-open="${escapeAttr(b.id)}">Открыть</button>${teacher?`<button class="danger" data-book-delete="${escapeAttr(b.id)}">Удалить</button>`:''}</div></article>`).join('');
+ const reviews=state.reviews.filter(r=>teacher||reviewTargets(r)).map(r=>{const book=state.books.find(b=>b.id===r.bookId);if(!book)return '';const done=!!r.doneBy?.[state.user.uid];const completed=Object.keys(r.doneBy||{}).length;return `<article class="card"><h3>${escapeAttr(r.topic||book.title)}</h3><p>📘 ${escapeAttr(book.title)} · стр. ${escapeAttr(r.pages||'1')}</p>${r.comment?`<p>${escapeAttr(r.comment)}</p>`:''}${r.due?`<p>Срок: ${escapeAttr(r.due)}</p>`:''}${teacher?`<p>Отметили повторение: ${completed}</p><button class="danger" data-review-delete="${escapeAttr(r.id)}">Удалить назначение</button>`:`<button class="secondary" data-book-open="${escapeAttr(book.id)}" data-page="${escapeAttr(String(r.pages||'1').match(/\d+/)?.[0]||'1')}">Открыть страницы</button> <button class="primary" data-review-done="${escapeAttr(r.id)}" ${done?'disabled':''}>${done?'✓ Повторил(а)':'Я повторил(а)'}</button>`}</article>`}).join('');
+ return `<section class="section-title"><div><h2>Электронная библиотека</h2><p>PDF-справочники и страницы для повторения</p></div></section>${teacher?`<div class="card library-form"><h3>Добавить PDF-справочник</h3><form id="libraryUpload"><input id="libraryTitle" required maxlength="150" placeholder="Название справочника"><input id="libraryDescription" maxlength="300" placeholder="Описание (необязательно)"><input id="libraryFile" type="file" accept="application/pdf,.pdf" required><button class="primary" type="submit">Загрузить PDF</button></form></div>`:''}<div class="library-grid">${books||'<p>Справочников пока нет.</p>'}</div>${teacher?`<div class="card library-form"><h3>Назначить страницы</h3><form id="reviewForm"><select id="reviewBook" required>${state.books.map(b=>`<option value="${escapeAttr(b.id)}">${escapeAttr(b.title)}</option>`).join('')}</select><input id="reviewTopic" required placeholder="Тема (например, Articles)"><input id="reviewPages" required placeholder="Страницы, например 45–48" pattern="[0-9 ,–\-]+"><textarea id="reviewComment" placeholder="Комментарий учителя"></textarea><input id="reviewDue" type="date"><select id="reviewTarget"><option value="all">Все учащиеся</option>${[...new Set(state.students.map(s=>s.groupId).filter(Boolean))].map(g=>`<option value="group:${escapeAttr(g)}">Группа: ${escapeAttr(g)}</option>`).join('')}${state.students.map(s=>`<option value="student:${escapeAttr(s.id)}">${escapeAttr(s.displayName)}</option>`).join('')}</select><button type="submit" class="primary">Назначить</button></form></div>`:''}<h2 style="margin:24px 0 12px">${teacher?'Выданные задания':'Мне повторить'}</h2><div class="library-grid">${reviews||'<p>Назначений пока нет.</p>'}</div>`;
+}
+function bindLibrary(){
+ $('#libraryUpload')?.addEventListener('submit',async e=>{
+  e.preventDefault();const button=e.target.querySelector('button');button.disabled=true;
+  const file=$('#libraryFile').files[0];
+  try{
+   if(!file||file.size>25*1024*1024)throw new Error('Выберите PDF размером до 25 МБ');
+   const response=await libraryRequest('/upload',{method:'PUT',headers:{'Content-Type':'application/pdf','X-File-Name':encodeURIComponent(file.name)},body:file});
+   const {key}=await response.json();
+   try{await addDoc(collection(db,'libraryBooks'),{title:$('#libraryTitle').value.trim(),description:$('#libraryDescription').value.trim(),key,teacherId:state.user.uid,createdAt:serverTimestamp()})}
+   catch(err){await libraryRequest('/file/'+key,{method:'DELETE'}).catch(()=>{});throw err}
+   await loadLibrary();render();toast('Справочник загружен');
+  }catch(err){toast(`Не удалось загрузить PDF: ${err.message}`);button.disabled=false}
+ });
+ $('#reviewForm')?.addEventListener('submit',async e=>{
+  e.preventDefault();const target=$('#reviewTarget').value;
+  try{
+   await addDoc(collection(db,'libraryReviews'),{teacherId:state.user.uid,bookId:$('#reviewBook').value,topic:$('#reviewTopic').value.trim(),pages:$('#reviewPages').value.trim(),comment:$('#reviewComment').value.trim(),due:$('#reviewDue').value,allStudents:target==='all',groupIds:target.startsWith('group:')?[target.slice(6)]:[],studentIds:target.startsWith('student:')?[target.slice(8)]:[],doneBy:{},createdAt:serverTimestamp()});
+   await loadLibrary();render();toast('Страницы назначены');
+  }catch(err){toast(`Ошибка назначения: ${err.message}`)}
+ });
+ document.querySelectorAll('[data-book-open]').forEach(b=>b.onclick=async()=>{
+  const book=state.books.find(x=>x.id===b.dataset.bookOpen);if(!book)return;
+  const tab=window.open('about:blank','_blank');
+  try{const blob=await (await libraryRequest('/file/'+book.key)).blob();const url=URL.createObjectURL(blob);if(tab)tab.location.href=url+`#page=${parseInt(b.dataset.page||'1',10)}`;else toast('Разрешите всплывающие окна');setTimeout(()=>URL.revokeObjectURL(url),300000)}catch(err){tab?.close();toast(`Не удалось открыть PDF: ${err.message}`)}
+ });
+ document.querySelectorAll('[data-review-done]').forEach(b=>b.onclick=async()=>{
+  try{await updateDoc(doc(db,'libraryReviews',b.dataset.reviewDone),{[`doneBy.${state.user.uid}`]:true});await loadLibrary();render();toast('Повторение отмечено')}catch(err){toast(err.message)}
+ });
+ document.querySelectorAll('[data-review-delete]').forEach(b=>b.onclick=async()=>{
+  if(!confirm('Удалить назначение?'))return;try{await deleteDoc(doc(db,'libraryReviews',b.dataset.reviewDelete));await loadLibrary();render()}catch(err){toast(err.message)}
+ });
+ document.querySelectorAll('[data-book-delete]').forEach(b=>b.onclick=async()=>{
+  const book=state.books.find(x=>x.id===b.dataset.bookDelete);if(!book||!confirm('Удалить справочник и его назначения?'))return;
+  try{await libraryRequest('/file/'+book.key,{method:'DELETE'});await deleteDoc(doc(db,'libraryBooks',book.id));for(const r of state.reviews.filter(x=>x.bookId===book.id))await deleteDoc(doc(db,'libraryReviews',r.id));await loadLibrary();render();toast('Справочник удалён')}catch(err){toast(err.message)}
+ });
+}

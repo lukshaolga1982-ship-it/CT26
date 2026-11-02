@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/test.schema.json",
+  "title": "CE/CT English test variant",
+  "type": "object",
+  "required": ["id", "exam", "year", "variant", "status", "questions"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type":"string","pattern":"^(ce|ct)-v0[1-5]$"},
+    "exam": {"enum":["CE","CT"]},
+    "year": {"const":2026},
+    "variant": {"type":"integer","minimum":1,"maximum":5},
+    "status": {"enum":["ocr_draft","reviewed","verified","published"]},
+    "questions": {
+      "type":"array","minItems":40,"maxItems":40,
+      "items": {"$ref":"#/$defs/question"}
+    }
+  },
+  "$defs": {
+    "question": {
+      "type":"object",
+      "required":["id","number","part","blockId","type","prompt","points","sourcePages","contentStatus","contentVersion"],
+      "additionalProperties": false,
+      "properties": {
+        "id":{"type":"string"},
+        "number":{"type":"string","pattern":"^[AB]([1-9]|1[0-9]|2[0-2])$"},
+        "part":{"enum":["A","B"]},
+        "blockId":{"type":"string"},
+        "type":{"enum":["single_choice","short_text","shared_text_single_choice","shared_text_short_text"]},
+        "prompt":{"type":"string","minLength":1},
+        "options":{"type":"array","items":{"type":"object","required":["id","text"],"properties":{"id":{"type":"string"},"text":{"type":"string"}},"additionalProperties":false}},
+        "sharedStimulusId":{"type":"string"},
+        "points":{"enum":[1,2]},
+        "sourcePages":{"type":"array","minItems":1,"items":{"type":"integer","minimum":1,"maximum":44}},
+        "contentStatus":{"enum":["ocr_draft","reviewed","verified","published","rejected"]},
+        "contentVersion":{"type":"integer","minimum":1}
+      }
+    }
+  }
+}

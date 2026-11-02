@@ -48,6 +48,26 @@ service cloud.firestore {
                      && get(/databases/$(database)/documents/attempts/$(id)).data.status == 'in-progress';
       }
     }
+    match /libraryBooks/{id} {
+      allow read: if isTeacher() && resource.data.teacherId == request.auth.uid
+        || isStudent() && resource.data.teacherId == profile().createdBy;
+      allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
+      allow update, delete: if isTeacher() && resource.data.teacherId == request.auth.uid;
+    }
+    match /libraryReviews/{id} {
+      allow read: if isTeacher() && resource.data.teacherId == request.auth.uid
+        || isStudent() && resource.data.teacherId == profile().createdBy;
+      allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
+      allow delete: if isTeacher() && resource.data.teacherId == request.auth.uid;
+      allow update: if isTeacher() && resource.data.teacherId == request.auth.uid
+        || isStudent() && resource.data.teacherId == profile().createdBy
+           && (resource.data.allStudents == true
+             || request.auth.uid in resource.data.studentIds
+             || profile().groupId in resource.data.groupIds)
+           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['doneBy'])
+           && request.resource.data.doneBy.diff(resource.data.doneBy).affectedKeys().hasOnly([request.auth.uid])
+           && request.resource.data.doneBy[request.auth.uid] == true;
+    }
     match /messages/{id} {
       allow read: if signedIn() && (
         (isTeacher() && resource.data.teacherId == request.auth.uid) ||
