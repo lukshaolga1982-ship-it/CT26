@@ -146,6 +146,12 @@ function parseImportedTasks(raw){
   const questionStart=/^([ABАВБ])\s*(\d{1,2})\s*[.)]\s*(.*)$/i;
   const optionStart=/(^|\s)([1-5])\s*[).]\s*/g;
   function appendLine(q,line){
+    // Reading passage: paragraph numbers (§ 1, § 2...) are never answer options.
+    // Our import-ready Word files encode passage line breaks as literal \n.
+    if(q.section==='A' && /^A(?:15|16|17|18)$/.test(q.id) && /^Текст к заданиям\s*A15\s*[–-]\s*A18\s*:/i.test(line)){
+      q.context+=(q.context?'\n':'')+line.replace(/\\n/g,'\n');
+      return;
+    }
     // Option 1 may be preceded by a short label, but options must be numbered in sequence.
     if(q.section==='A'){
       const hits=[...line.matchAll(optionStart)].map(m=>({index:m.index+(m[1]?.length||0),end:m.index+m[0].length,n:+m[2]}));
@@ -180,6 +186,21 @@ function parseImportedTasks(raw){
     }else if(current)appendLine(current,line);
   }
   if(current)questions.push(current);
+  // Reading comprehension only (A15–A18 in the provided RT documents):
+  // The DOCX stores the reading passage, then a newline and the question.
+  // Keep that question in the instruction (prompt), the passage in the task text
+  // (context), and the numbered choices in options. Leave ALL other tasks intact.
+  for(const q of questions){
+    if(q.section!=='A'||!/^A(?:15|16|17|18)$/.test(q.id))continue;
+    if(!/^Текст к заданиям\s*A15\s*[–-]\s*A18\s*:/i.test(q.context))continue;
+    const parts=q.context.split('\n').map(p=>p.trim()).filter(Boolean);
+    if(parts.length<3)continue;
+    const question=parts.pop();
+    if(!/[?…]|\.\.\.$/.test(question))continue;
+    q.prompt=question;
+    q.context=parts.join('\n').replace(/^Текст к заданиям\s*A15\s*[–-]\s*A18\s*:\s*/i,'').trim();
+    q.block='A15–A18';
+  }
   return questions;
 }
 function loadExternalScript(src){return new Promise((resolve,reject)=>{const tag=document.createElement('script');tag.src=src;tag.onload=resolve;tag.onerror=()=>reject(new Error('Не удалось загрузить модуль импорта'));document.head.appendChild(tag)})}
