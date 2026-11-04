@@ -140,27 +140,47 @@ async function toggleTestAccess(testId){
 
 // Import is deliberately reviewed before publishing. Parsers do not infer correct keys.
 function parseImportedTasks(raw){
+  // Import paragraphs may contain inline options, tabs, or one option per line.
   const lines=raw.replace(/\r/g,'').split('\n').map(x=>x.trim()).filter(Boolean);
-  const tasks=[];let current=null;
-  const heading=/^(?:([ABАБ])\s*[-.]?\s*(\d{1,2})|(\d{1,2}))\s*[.)\-:]\s*(.*)$/i;
-  for(const line of lines){
-    const match=line.match(heading);
-    if(match){
-      if(current)tasks.push(current);
-      const part=(match[1]||'A').toUpperCase();
-      const section=(part==='B'||part==='Б')?'B':'A';
-      const number=match[2]||match[3];
-      current={id:`${section}${number}`,section,block:section,type:'input',prompt:'Выполните задание.',context:match[4]||'',options:[],accepted:[],points:section==='A'?1:2};
-    }else if(current){
-      const option=line.match(/^(?:[a-dA-Dа-гА-Г]|[1-4])\s*[.)]\s*(.+)$/);
-      if(option){current.options.push(option[1]);current.type='choice'}
-      else current.context+=(current.context?'\n':'')+line;
+  const questions=[];let current=null;let section='A';
+  const questionStart=/^([ABАВБ])\s*(\d{1,2})\s*[.)]\s*(.*)$/i;
+  const optionStart=/(^|\s)([1-5])\s*[).]\s*/g;
+  function appendLine(q,line){
+    // Option 1 may be preceded by a short label, but options must be numbered in sequence.
+    if(q.section==='A'){
+      const hits=[...line.matchAll(optionStart)].map(m=>({index:m.index+(m[1]?.length||0),end:m.index+m[0].length,n:+m[2]}));
+      const first=hits.findIndex(h=>h.n===1);
+      if(first>=0){
+        const options=hits.slice(first);
+        const valid=options.every((h,i)=>h.n===i+1);
+        if(valid && options.length>=2){
+          const prefix=line.slice(0,options[0].index).trim();
+          if(prefix && !/^(?:варианты(?:\s+ответа)?|answers|options)\s*:?$/i.test(prefix))q.context+=(q.context?'\n':'')+prefix;
+          options.forEach((h,i)=>{
+            const value=line.slice(h.end,i+1<options.length?options[i+1].index:line.length).trim();
+            if(value)q.options.push(value);
+          });
+          q.type='choice';return;
+        }
+      }
+      // Handles Word layouts where each answer is a separate paragraph.
+      const single=line.match(/^([1-5])\s*[).]\s*(\S.*)$/);
+      if(single && +single[1]===q.options.length+1){q.options.push(single[2].trim());q.type='choice';return;}
     }
+    q.context+=(q.context?'\n':'')+line;
   }
-  if(current)tasks.push(current);
-  // Fallback: do not discard the source when document structure is unusual.
-  if(!tasks.length&&raw.trim())tasks.push({id:'A1',section:'A',block:'A',type:'input',prompt:'Проверьте импортированный текст и разбейте его на задания.',context:raw.trim().slice(0,12000),options:[],accepted:[],points:1});
-  return tasks;
+  for(const line of lines){
+    if(/^Часть\s*[BВБ]\b/i.test(line))section='B';
+    const m=line.match(questionStart);
+    if(m){
+      if(current)questions.push(current);
+      section=/[BВБ]/i.test(m[1])?'B':'A';
+      current={id:section+m[2],section,block:section,type:section==='A'?'choice':'input',prompt:section==='A'?'Выберите один правильный ответ.':'Запишите краткий ответ.',context:'',options:[],accepted:[],points:section==='A'?1:2};
+      if(m[3])appendLine(current,m[3]);
+    }else if(current)appendLine(current,line);
+  }
+  if(current)questions.push(current);
+  return questions;
 }
 function loadExternalScript(src){return new Promise((resolve,reject)=>{const tag=document.createElement('script');tag.src=src;tag.onload=resolve;tag.onerror=()=>reject(new Error('Не удалось загрузить модуль импорта'));document.head.appendChild(tag)})}
 async function importTestFromFile(e){
@@ -187,8 +207,9 @@ async function importTestFromFile(e){
   const questions=parseImportedTasks(raw);
   if(!questions.length)throw new Error('В документе не удалось найти текст (возможно, это скан PDF)');
   const title=file.name.replace(/\.(docx|pdf)$/i,'');
-  toast(`Найдено ${questions.length} заданий. Проверьте текст и ответы.`);
-  manualTestModal({title,questions,timeLimit:45,structure:'Импортировано из '+file.name});
+  const missing=questions.filter(q=>q.section==='A'&&q.options.length<2);
+  toast(`Найдено ${questions.length} заданий; без вариантов ответа: ${missing.length}. Проверьте текст и ответы.`);
+  manualTestModal({title,questions,timeLimit:120,structure:'Импортировано из '+file.name});
  }catch(err){console.error(err);toast(err.message||'Ошибка импорта файла')}
 }
 
