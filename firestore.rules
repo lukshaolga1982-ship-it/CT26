@@ -18,9 +18,10 @@ service cloud.firestore {
       allow read: if isStudent() && resource.data.teacherId == profile().createdBy;
     }
     match /tests/{testId} {
-      allow read: if signedIn() && resource.data.status == 'published' || isTeacher();
-      allow write: if isTeacher();
-      match /questions/{questionId} { allow read: if signedIn(); allow write: if isTeacher(); }
+      allow read: if (isStudent() && resource.data.status == 'published' && resource.data.teacherId == profile().createdBy) || (isTeacher() && resource.data.teacherId == request.auth.uid);
+      allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
+      allow update, delete: if isTeacher() && resource.data.teacherId == request.auth.uid;
+      match /questions/{questionId} { allow read, write: if isTeacher(); }
     }
     match /answerKeys/{testId} { allow read, write: if isTeacher(); }
     match /invites/{id} { allow read, write: if isTeacher(); }
