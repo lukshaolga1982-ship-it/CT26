@@ -3,7 +3,7 @@ import { auth, db, watchAuth, loginWithStudentLogin, loginWithTeacherEmail, logo
 const LIBRARY_API="https://ct26-library-api.lukshaolga1982.workers.dev";
 const $ = (s, p=document) => p.querySelector(s);
 const app = $("#app");
-const state = {view:"dashboard",role:"teacher",loginRole:"student",user:null,authLoading:true,year:"ЦЭ 2026",test:null,index:0,answers:{},optionOrder:{},timer:null,seconds:120*60,students:[],attempts:[],customTests:[],builtInOverrides:[],messages:[],books:[],reviews:[],messageStudentId:null,attemptId:null,saveTimer:null,revisionErrors:new Set(),revisionComments:{}};
+const state = {view:"dashboard",role:"teacher",loginRole:"student",user:null,authLoading:true,year:"ЦЭ 2026",test:null,index:0,answers:{},optionOrder:{},timer:null,seconds:120*60,students:[],attempts:[],externalResults:[],customTests:[],builtInOverrides:[],messages:[],books:[],reviews:[],messageStudentId:null,attemptId:null,saveTimer:null,revisionErrors:new Set(),revisionComments:{}};
 const scale={0:0,1:1,2:2,3:3,4:4,5:8,6:12,7:15,8:18,9:21,10:24,11:26,12:28,13:29,14:31,15:32,16:34,17:35,18:36,19:37,20:38,21:39,22:40,23:41,24:42,25:43,26:44,27:45,28:46,29:47,30:48,31:49,32:50,33:51,34:52,35:53,36:54,37:55,38:56,39:57,40:58,41:59,42:60,43:61,44:63,45:64,46:65,47:66,48:68,49:69,50:70,51:72,52:73,53:75,54:77,55:79,56:81,57:84,58:87,59:91,60:95,61:99,62:100};
 // Отметка ЦЭ определяется по тестовому (стобалльному) результату.
 const ceGradeRanges=[[1,0,1],[2,2,2],[3,3,10],[4,11,20],[5,21,29],[6,30,37],[7,38,47],[8,48,65],[9,66,79],[10,80,100]];
@@ -20,7 +20,7 @@ function shell(content,title,eyebrow='Кабинет учителя'){
   return `<div class="shell"><aside class="sidebar" id="sidebar"><div class="logo"><div class="logo-mark">ЦТ</div><div class="logo-copy"><strong>Английский язык</strong><span>ЦЭ / ЦТ · 2020–2026</span></div></div><nav class="nav">${nav.map(([id,label,ic])=>`<button data-view="${id}" class="${state.view===id?'active':''}">${icons[ic]}${label}${id==='messages'&&unread?`<b class="unread-badge">${unread}</b>`:''}</button>`).join('')}</nav><div class="sidebar-foot"><div class="user-mini"><div class="avatar">${initials}</div><div><strong>${state.user.name}</strong><span>${state.user.role==='teacher'?'Учитель':state.user.group}</span></div><button class="logout" id="logout" title="Выйти">↗</button></div></div></aside><main class="main"><header class="topbar"><div style="display:flex;align-items:center;gap:12px"><button class="mobile-menu" id="menuBtn">☰</button><div><p class="eyebrow">${eyebrow}</p><h1>${title}</h1></div></div><div class="actions"><button class="icon-btn" aria-label="Уведомления">⌁</button>${state.user.role==='teacher'?'<button class="primary" id="createStudentTop">+ Создать ученика</button>':''}</div></header>${content}</main><nav class="mobile-bar">${nav.map(([id,label])=>`<button data-view="${id}" class="${state.view===id?'active':''}">${label}${id==='messages'&&unread?` (${unread})`:''}</button>`).join('')}</nav></div>`;
 }
 
-function render(){clearInterval(state.timer);if(state.authLoading){app.innerHTML='<main class="loading-screen"><div class="logo-mark">ЦТ</div><p>Загрузка кабинета…</p></main>';return}if(!state.user)return renderLogin();if(state.view==='test')return renderTest();if(state.view==='result')return renderResult();const views={dashboard:dashboard(),tests:tests(),students:students(),results:results(),messages:messagesView(),library:libraryView(),'student-home':studentDashboard(),'student-results':studentResults(),mistakes:mistakes()};const titles={dashboard:`Добрый вечер, ${state.user.name.split(' ')[0]}!`,tests:state.user.role==='teacher'?'Банк тестов':'Доступные тесты',students:'Учащиеся',results:'Результаты',messages:'Сообщения',library:'Справочник','student-home':`Привет, ${state.user.name.split(' ')[0]}!`,'student-results':'Мои результаты',mistakes:'Мои ошибки'};app.innerHTML=shell(views[state.view],titles[state.view],state.user.role==='teacher'?'Кабинет учителя':'Кабинет ученика');bindCommon();bindListFilters();if(state.view==='messages')markConversationRead();if(state.view==='library')bindLibrary();}
+function render(){clearInterval(state.timer);if(state.authLoading){app.innerHTML='<main class="loading-screen"><div class="logo-mark">ЦТ</div><p>Загрузка кабинета…</p></main>';return}if(!state.user)return renderLogin();if(state.view==='test')return renderTest();if(state.view==='result')return renderResult();const views={dashboard:dashboard(),tests:tests(),students:students(),results:results(),messages:messagesView(),library:libraryView(),'student-home':studentDashboard(),'student-results':studentResults(),mistakes:mistakes()};const titles={dashboard:`Добрый вечер, ${state.user.name.split(' ')[0]}!`,tests:state.user.role==='teacher'?'Банк тестов':'Доступные тесты',students:'Учащиеся',results:'Результаты',messages:'Сообщения',library:'Справочник','student-home':`Привет, ${state.user.name.split(' ')[0]}!`,'student-results':'Мои результаты',mistakes:'Мои ошибки'};app.innerHTML=shell(views[state.view],titles[state.view],state.user.role==='teacher'?'Кабинет учителя':'Кабинет ученика');bindCommon();bindListFilters();if(state.view==='messages')markConversationRead();if(state.view==='library')bindLibrary();if(state.view==='results')bindProgressControls();}
 function bindCommon(){document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{state.view=b.dataset.view;render()});$('#menuBtn')?.addEventListener('click',()=>$('#sidebar').classList.toggle('open'));$('#createStudentTop')?.addEventListener('click',createStudentModal);$('#logout')?.addEventListener('click',async()=>{await logout();state.view='dashboard'});document.querySelectorAll('[data-start]').forEach(b=>b.onclick=()=>startTest("ЦЭ 2026",+b.dataset.start));document.querySelectorAll('[data-year]').forEach(b=>b.onclick=()=>{state.year=b.dataset.year;render()});document.querySelectorAll('[data-open-test]').forEach(b=>b.onclick=()=>{const variant=builtInById(b.dataset.openTest);if(variant?.status==='ready')launchTest(variant);else if(variant)sourceModal(variant)});document.querySelectorAll('[data-custom-test]').forEach(b=>b.onclick=()=>startCustomTest(b.dataset.customTest));$('#importTestFile')?.addEventListener('change',importTestFromFile);document.querySelectorAll('[data-toggle-test]').forEach(b=>b.onclick=()=>toggleTestAccess(b.dataset.toggleTest));document.querySelectorAll('[data-test-audience]').forEach(b=>b.onclick=()=>testAudienceModal(b.dataset.testAudience));document.querySelectorAll('[data-edit-test]').forEach(b=>b.onclick=()=>editCustomTest(b.dataset.editTest));document.querySelectorAll('[data-edit-built-in]').forEach(b=>b.onclick=()=>editBuiltInTest(b.dataset.editBuiltIn));document.querySelectorAll('[data-delete-test]').forEach(b=>b.onclick=()=>confirmDeleteTest(b.dataset.deleteTest));document.querySelectorAll('[data-delete-student]').forEach(b=>b.onclick=()=>confirmDeleteStudent(b.dataset.deleteStudent));$('#buildFromReady')?.addEventListener('click',customTestBuilderModal);$('#createManualTest')?.addEventListener('click',()=>manualTestModal());document.querySelectorAll('[data-modal]').forEach(b=>b.onclick=()=>assignmentModal(b.dataset.modal));document.querySelectorAll('[data-review-attempt]').forEach(b=>b.onclick=()=>reviewAttempt(b.dataset.reviewAttempt));document.querySelectorAll('[data-delete-attempt]').forEach(b=>b.onclick=()=>confirmDeleteAttempt(b.dataset.deleteAttempt));document.querySelectorAll('[data-attempt-errors]').forEach(b=>b.onclick=()=>showAttemptErrors(b.dataset.attemptErrors));document.querySelectorAll('[data-error-detail]').forEach(b=>b.onclick=()=>showErrorDetail(b.dataset.errorDetail,b.dataset.questionId));document.querySelectorAll('[data-resume-attempt]').forEach(b=>b.onclick=()=>resumeAttempt(b.dataset.resumeAttempt));document.querySelectorAll('[data-student-errors]').forEach(b=>b.onclick=()=>showStudentErrors(b.dataset.studentErrors));document.querySelectorAll('[data-student-attempts]').forEach(b=>b.onclick=()=>showStudentAttempts(b.dataset.studentAttempts));document.querySelectorAll('[data-message-student]').forEach(b=>b.onclick=()=>{state.messageStudentId=b.dataset.messageStudent;render()});$('#sendMessage')?.addEventListener('click',sendMessage);}
 
 function renderLogin(){app.innerHTML=`<main class="login-page"><section class="brand-panel"><div class="login-brand"><div class="logo-mark">ЦТ</div><span>Английский язык</span></div><div><p class="eyebrow">Подготовка к ЦЭ и ЦТ</p><h1>Все тесты.<br>Весь прогресс.<br>В одном месте.</h1><p>Решайте варианты по годам, повторяйте ошибки и следите за результатом.</p></div><b>2020 — 2026</b></section><section class="login-side"><form class="login-card" id="loginForm"><p class="eyebrow">Добро пожаловать</p><h2>Вход в личный кабинет</h2><p>${state.loginRole==='teacher'?'Введите электронную почту учителя и пароль Firebase.':'Введите логин и пароль, которые выдал учитель.'}</p><div class="role-switch"><button type="button" data-role="student" class="${state.loginRole==='student'?'active':''}">Ученик</button><button type="button" data-role="teacher" class="${state.loginRole==='teacher'?'active':''}">Учитель</button></div><div class="field"><label>${state.loginRole==='teacher'?'Email':'Логин'}</label><input id="login" autocomplete="username" placeholder="${state.loginRole==='teacher'?'lukshaolga1982@gmail.com':'Введите логин'}" required></div><div class="field"><label>Пароль</label><div class="password-field"><input id="password" type="password" autocomplete="current-password" placeholder="Введите пароль" required><button type="button" id="showPassword">Показать</button></div></div><div id="loginError" class="login-error"></div><button class="primary login-submit" type="submit">Войти</button></form></section></main>`;document.querySelectorAll('[data-role]').forEach(b=>b.onclick=()=>{state.loginRole=b.dataset.role;renderLogin()});$('#showPassword').onclick=()=>{const p=$('#password');p.type=p.type==='password'?'text':'password'};$('#loginForm').onsubmit=async e=>{e.preventDefault();const button=e.submitter;button.disabled=true;button.textContent='Вход…';$('#loginError').textContent='';try{if(state.loginRole==='teacher')await loginWithTeacherEmail($('#login').value,$('#password').value);else await loginWithStudentLogin($('#login').value,$('#password').value)}catch(error){console.error(error);$('#loginError').textContent='Не удалось войти. Проверьте логин, пароль и выбранную роль.';button.disabled=false;button.textContent='Войти'}}}
@@ -59,7 +59,156 @@ function applyListFilters(){const kind=state.view;if(!listFilters[kind])return;c
 function bindListFilters(){const kind=state.view;if(!listFilters[kind])return;$('#listSearch')?.addEventListener('input',e=>{listFilters[kind].query=e.target.value;applyListFilters()});$('#listSort')?.addEventListener('change',e=>{listFilters[kind].sort=e.target.value;applyListFilters()});applyListFilters()}
 function students(){return `<div class="section-title"><div><h2>${state.students.length} учащихся</h2><p>Прогресс рассчитывается по всем сохранённым попыткам, включая доработки.</p></div><button class="primary" onclick="createStudentModal()">+ Создать ученика</button></div>${listToolbar("students")}<div class="card table-wrap filtered-list">${state.students.length?`<table class="table"><thead><tr><th>Ученик</th><th>Логин</th><th>Группа</th><th>Попыток</th><th>Все ошибки</th><th>Средний балл</th><th>Действия</th></tr></thead><tbody>${state.students.map(s=>{const m=studentMetrics(s.id);return `<tr data-search="${escapeAttr([s.displayName,s.login,s.groupId].join(" "))}" data-name="${escapeAttr(s.displayName||"")}" data-group="${escapeAttr(s.groupId||"")}" data-score="${m.progressPercent}" data-attempts="${m.completedTests}"><td><strong>${escapeAttr(s.displayName||'Без имени')}</strong></td><td><code>${escapeAttr(s.login||'—')}</code></td><td>${escapeAttr(s.groupId||'Без группы')}</td><td><button class="secondary" data-student-attempts="${escapeAttr(s.id)}">${m.completedTests} · посмотреть</button></td><td><button class="secondary" data-student-errors="${escapeAttr(s.id)}">${m.totalErrors} · посмотреть</button></td><td><div class="progress" style="width:90px"><i style="width:${m.progressPercent}%"></i></div><small>${m.progressPercent}%</small></td><td><button class="danger" data-delete-student="${escapeAttr(s.id)}">Удалить</button></td></tr>`}).join('')}</tbody></table><p id="listEmpty" class="empty" hidden>По вашему запросу учащиеся не найдены.</p>`:'<div class="empty"><strong>Учеников пока нет</strong>Создайте первый аккаунт — он сразу появится в этой таблице.</div>'}</div>`}
 
-function results(){const studentName=id=>state.students.find(s=>s.id===id)?.displayName||'Ученик',attempts=completedAttempts().sort((a,b)=>timestampValue(attemptMoment(b))-timestampValue(attemptMoment(a)));return `<div class="section-title"><div><h2>Все попытки учащихся</h2><p>Предыдущие результаты не удаляются после отправки на доработку. Каждая повторная отправка хранится отдельной строкой.</p></div></div>${listToolbar("results")}<div class="card table-wrap filtered-list" style="margin-top:16px">${attempts.length?`<table class="table"><thead><tr><th>Ученик</th><th>Работа</th><th>Попытка</th><th>Дата</th><th>Первичный</th><th>Тестовый</th><th>Отметка</th><th>Статус</th><th>Действия</th></tr></thead><tbody>${attempts.map(a=>`<tr data-search="${escapeAttr(studentName(a.studentId))}" data-name="${escapeAttr(studentName(a.studentId))}" data-score="${Number(a.testScore)||0}" data-time="${timestampValue(attemptMoment(a))||0}" data-test="${escapeAttr(a.testTitle||`${a.year||2026} · Вариант ${a.variantNumber||"—"}`)}"><td><strong>${escapeAttr(studentName(a.studentId))}</strong></td><td>${escapeAttr(a.testTitle||`${a.year||2026} · Вариант ${a.variantNumber||'—'}`)}</td><td><strong>${escapeAttr(attemptLabel(a))}</strong></td><td>${attemptDate(a)}</td><td class="score">${a.primaryScore??'—'} / ${a.maxPrimary??62}</td><td class="score">${a.testScore??'—'} / 100</td><td class="score">${gradeDisplay(a)}</td><td>${attemptStatus(a)}</td><td><div class="result-actions"><button class="secondary" data-review-attempt="${escapeAttr(a.id)}">Открыть</button><button class="danger" data-delete-attempt="${escapeAttr(a.id)}">Удалить</button></div></td></tr>`).join('')}</tbody></table><p id="listEmpty" class="empty" hidden>По вашему запросу результаты не найдены.</p>`:'<div class="empty"><strong>Результатов пока нет</strong>После первой отправленной работы она появится здесь.</div>'}</div>`}
+
+// Аналитика: онлайн-попытки и введённые учителем результаты РТ / ЦТ / ЦЭ.
+const progressFilter={student:'all',source:'all'};
+function progressDate(row){
+  if(row.external)return String(row.examDate||'');
+  const moment=attemptMoment(row);
+  const value=timestampValue(moment);
+  return value?new Date(value).toISOString().slice(0,10):'';
+}
+function progressRows(){
+  const online=completedAttempts().filter(a=>Number.isFinite(Number(a.testScore))).map(a=>({
+    id:a.id,studentId:a.studentId,score:Number(a.testScore),primary:a.primaryScore??null,maxPrimary:a.maxPrimary??62,
+    date:progressDate(a),source:'Сайт',title:a.testTitle||`${a.year||'Тест'} · Вариант ${a.variantNumber||'—'}`,external:false
+  }));
+  const external=state.externalResults.filter(r=>Number.isFinite(Number(r.testScore))).map(r=>({
+    ...r,score:Number(r.testScore),primary:r.primaryScore??null,date:String(r.examDate||''),
+    source:r.examType||'РТ',title:r.title||r.examType||'РТ',external:true
+  }));
+  return [...online,...external].filter(r=>r.score>=0&&r.score<=100).sort((a,b)=>a.date.localeCompare(b.date));
+}
+// Аналитика по типам заданий: учитываются только проверенные ответы, без предположений.
+const TASK_SECTIONS=[
+ {id:'a-grammar',label:'А1–А8 · Грамматика',part:'A',start:1,end:8},
+ {id:'a-vocabulary',label:'А9–А12 · Лексика',part:'A',start:9,end:12},
+ {id:'a-communication',label:'А13–А14 · Речевые ситуации',part:'A',start:13,end:14},
+ {id:'a-reading',label:'А15–А18 · Чтение',part:'A',start:15,end:18},
+ {id:'b-prepositions',label:'В1–В3 · Предлоги',part:'B',start:1,end:3},
+ {id:'b-grammar',label:'В4–В8 · Грамматика и лексика',part:'B',start:4,end:8},
+ {id:'b-extra',label:'В9–В18 · Лишнее слово',part:'B',start:9,end:18},
+ {id:'b-transform',label:'В19 · Трансформация',part:'B',start:19,end:19},
+ {id:'b-wordform',label:'В20–В22 · Словообразование',part:'B',start:20,end:22}
+];
+const sectionFilter={mode:'latest'};
+function questionSection(question){
+  const match=String(question?.id||'').trim().toUpperCase().match(/^([ABАВ])\s*0*(\d{1,2})$/);
+  if(!match)return null;
+  const letter=match[1]==='А'?'A':match[1]==='В'?'B':match[1];
+  const number=Number(match[2]);
+  return TASK_SECTIONS.find(b=>b.part===letter&&number>=b.start&&number<=b.end)||null;
+}
+function sectionDataForAttempt(attempt){
+  if(!attempt||!Array.isArray(attempt.questionsSnapshot)||!attempt.questionResultsSnapshot)return [];
+  const tally=new Map();
+  for(const q of attempt.questionsSnapshot){
+    const section=questionSection(q),outcome=attempt.questionResultsSnapshot[q.id];
+    if(!section||!outcome||typeof outcome.correct!=='boolean')continue;
+    const points=Number(q.points)>0?Number(q.points):(section.part==='A'?1:2);
+    const current=tally.get(section.id)||{id:section.id,label:section.label,earned:0,max:0,correct:0,questions:0};
+    current.max+=points;
+    current.earned+=outcome.correct?points:0;
+    current.correct+=outcome.correct?1:0;
+    current.questions++;
+    tally.set(section.id,current);
+  }
+  return [...tally.values()];
+}
+function sectionAnalysis(){
+  const selected=progressRows().filter(r=>(progressFilter.student==='all'||r.studentId===progressFilter.student)&&(progressFilter.source==='all'||r.source===progressFilter.source));
+  const attemptMap=new Map(completedAttempts().map(a=>[a.id,a]));
+  const online=selected.filter(r=>!r.external).map(r=>attemptMap.get(r.id)).filter(Boolean);
+  const excluded=selected.filter(r=>r.external).length;
+  let relevant=online;
+  if(sectionFilter.mode==='latest'){
+    const last=new Map();
+    for(const a of online){const prev=last.get(a.studentId);if(!prev||timestampValue(attemptMoment(a))>=timestampValue(attemptMoment(prev)))last.set(a.studentId,a)}
+    relevant=[...last.values()];
+  }
+  const sums=new Map();
+  for(const a of relevant){for(const row of sectionDataForAttempt(a)){
+    const prev=sums.get(row.id)||{...row,earned:0,max:0,correct:0,questions:0};
+    prev.earned+=row.earned;prev.max+=row.max;prev.correct+=row.correct;prev.questions+=row.questions;
+    sums.set(row.id,prev);
+  }}
+  const data=TASK_SECTIONS.map(section=>sums.get(section.id)).filter(v=>v&&v.max>0);
+  const subtitle=sectionFilter.mode==='latest'?'Последняя проверенная попытка каждого ученика':'Все проверенные попытки (включая пересдачи)';
+  return `<section class="card" style="padding:22px;margin-bottom:22px">
+    <div class="card-head"><div><h2>Результаты по разделам</h2><p>${subtitle}. Процент = набранные баллы / возможные баллы раздела.</p></div></div>
+    <div class="form-grid" style="margin:14px 0"><label class="field"><span>Учитывать попытки</span><select id="sectionMode"><option value="latest" ${sectionFilter.mode==='latest'?'selected':''}>Только последние</option><option value="all" ${sectionFilter.mode==='all'?'selected':''}>Все попытки</option></select></label></div>
+    ${data.length?`<div class="table-wrap"><table class="table"><thead><tr><th>Раздел</th><th>Получено</th><th>Максимум</th><th>Выполнение</th></tr></thead><tbody>${data.map(row=>{const pct=Math.round(row.earned/row.max*100);return `<tr><td>${escapeAttr(row.label)}</td><td>${row.earned}</td><td>${row.max}</td><td style="min-width:190px"><strong>${pct}%</strong><div class="progress" style="margin-top:6px"><i style="width:${pct}%"></i></div></td></tr>`}).join('')}</tbody></table></div>`:'<p class="empty">Для анализа разделов пока нет проверенных заданий с номерами А1–А18 и В1–В22. Общие баллы сохранены и отображаются выше.</p>'}
+    <p style="font-size:13px;margin-top:12px;color:var(--muted,#64748b)">Учитываются только задания, для которых сохранён результат проверки. ${excluded?'Внешних результатов без разбивки: '+excluded+'. ':''}РТ / ЦТ / ЦЭ с одним общим баллом не распределяются по разделам автоматически. Для авторских тестов с другой нумерацией разбивка пока не рассчитывается.</p>
+  </section>`;
+}
+function progressPanel(){
+  const filtered=progressRows().filter(r=>(progressFilter.student==='all'||r.studentId===progressFilter.student)&&(progressFilter.source==='all'||r.source===progressFilter.source));
+  const avg=filtered.length?Math.round(filtered.reduce((sum,r)=>sum+r.score,0)/filtered.length):null;
+  const ids=progressFilter.student==='all'?[...new Set(filtered.map(r=>r.studentId))]:[progressFilter.student];
+  const byStudent=ids.map(id=>{const a=filtered.filter(r=>r.studentId===id);return {id,name:state.students.find(s=>s.id===id)?.displayName||'Ученик',rows:a,first:a[0]?.score,last:a.at(-1)?.score}}).filter(x=>x.rows.length).sort((a,b)=>a.name.localeCompare(b.name,'ru'));
+  const trend=byStudent.filter(x=>x.rows.length>=2);
+  const svg=progressFilter.student==='all'
+    ? `<div class="table-wrap"><table class="table"><thead><tr><th>Учащийся</th><th>Результатов</th><th>Первый</th><th>Последний</th><th>Изменение</th><th>Средний /100</th></tr></thead><tbody>${byStudent.map(x=>{const diff=x.last-x.first;const mean=Math.round(x.rows.reduce((sum,r)=>sum+r.score,0)/x.rows.length);return `<tr><td>${escapeAttr(x.name)}</td><td>${x.rows.length}</td><td>${x.first}</td><td><strong>${x.last}</strong></td><td>${x.rows.length<2?'—':diff>0?'+'+diff:diff}</td><td>${mean}</td></tr>`}).join('')}</tbody></table></div>`
+    : progressChart(filtered);
+  return `<section class="card" style="padding:22px;margin-bottom:22px">
+    <div class="card-head"><div><h2>Динамика результатов</h2><p>Тесты на сайте и результаты РТ / ЦТ / ЦЭ, внесённые вручную</p></div><button class="primary" id="newExternalResult">+ Добавить результат РТ / ЦТ</button></div>
+    <div class="form-grid" style="margin:18px 0;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))">
+      <label class="field"><span>Учащийся</span><select id="progressStudent"><option value="all">Все учащиеся</option>${state.students.map(st=>`<option value="${escapeAttr(st.id)}" ${progressFilter.student===st.id?'selected':''}>${escapeAttr(st.displayName||st.login)}</option>`).join('')}</select></label>
+      <label class="field"><span>Источник</span><select id="progressSource">${[['all','Все результаты'],['Сайт','Тесты на сайте'],['РТ','Репетиционное тестирование'],['ЦТ','Централизованное тестирование'],['ЦЭ','Централизованный экзамен']].map(([v,n])=>`<option value="${v}" ${progressFilter.source===v?'selected':''}>${n}</option>`).join('')}</select></label>
+    </div>
+    <div class="grid stats" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:16px"><div class="stat"><span>Всего результатов</span><strong>${filtered.length}</strong></div><div class="stat"><span>Средний тестовый балл</span><strong>${avg??'—'}</strong></div><div class="stat"><span>Учащихся с динамикой</span><strong>${trend.length}</strong></div></div>
+    ${filtered.length?svg:'<p class="empty">Пока нет результатов по выбранным фильтрам.</p>'}
+    <h3 style="margin:24px 0 10px">Все результаты по датам</h3><div class="table-wrap"><table class="table"><thead><tr><th>Дата</th><th>Ученик</th><th>Источник</th><th>Работа</th><th>Первичный</th><th>Тестовый</th><th>Отметка</th><th>Действия</th></tr></thead><tbody>${[...filtered].reverse().map(r=>`<tr><td>${escapeAttr(r.date||'—')}</td><td>${escapeAttr(state.students.find(st=>st.id===r.studentId)?.displayName||'Ученик')}</td><td>${escapeAttr(r.source)}</td><td>${escapeAttr(r.title)}</td><td>${r.primary===null?'—':`${r.primary} / ${r.maxPrimary??62}`}</td><td><strong>${r.score}/100</strong></td><td>${ceGrade(r.score)??'—'}/10</td><td>${r.external?`<button class="secondary" data-external-edit="${escapeAttr(r.id)}">Изменить</button> <button class="danger" data-external-delete="${escapeAttr(r.id)}">Удалить</button>`:'Автоматически'}</td></tr>`).join('')}</tbody></table></div>
+  </section>`;
+}
+function progressChart(rows){
+  if(!rows.length)return '';
+  const ordered=[...rows].sort((a,b)=>a.date.localeCompare(b.date));
+  const w=760,h=260,left=43,right=20,top=22,bottom=38,plotW=w-left-right,plotH=h-top-bottom;
+  const x=i=>left+(ordered.length<2?plotW/2:i*plotW/(ordered.length-1));
+  const y=score=>top+(100-score)*plotH/100;
+  const line=ordered.map((r,i)=>`${x(i)},${y(r.score)}`).join(' ');
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="График тестовых баллов по датам" style="width:100%;max-width:850px;display:block;margin:auto">
+   ${[0,25,50,75,100].map(v=>`<line x1="${left}" x2="${w-right}" y1="${y(v)}" y2="${y(v)}" stroke="#dce3ed"/><text x="${left-9}" y="${y(v)+4}" font-size="12" text-anchor="end" fill="#65758e">${v}</text>`).join('')}
+   <polyline points="${line}" fill="none" stroke="#3158d8" stroke-width="3" stroke-linejoin="round"/>${ordered.map((r,i)=>`<circle cx="${x(i)}" cy="${y(r.score)}" r="5" fill="${r.external?'#e58a3c':'#3158d8'}"><title>${escapeAttr(r.date)} · ${escapeAttr(r.source)}: ${r.score}/100</title></circle>`).join('')}
+   <text x="${left}" y="${h-12}" fill="#65758e" font-size="12">${escapeAttr(ordered[0].date)}</text><text x="${w-right}" y="${h-12}" text-anchor="end" fill="#65758e" font-size="12">${escapeAttr(ordered.at(-1).date)}</text></svg><p style="text-align:center;font-size:13px">🔵 Тест на сайте &nbsp; 🟠 РТ / ЦТ / ЦЭ</p></div>`;
+}
+function bindProgressControls(){
+  $('#progressStudent')?.addEventListener('change',e=>{progressFilter.student=e.target.value;render()});
+  $('#progressSource')?.addEventListener('change',e=>{progressFilter.source=e.target.value;render()});
+  $('#sectionMode')?.addEventListener('change',e=>{sectionFilter.mode=e.target.value;render()});
+  $('#newExternalResult')?.addEventListener('click',()=>externalResultModal());
+  document.querySelectorAll('[data-external-edit]').forEach(b=>b.addEventListener('click',()=>externalResultModal(b.dataset.externalEdit)));
+  document.querySelectorAll('[data-external-delete]').forEach(b=>b.addEventListener('click',()=>deleteExternalResult(b.dataset.externalDelete)));
+}
+function externalResultModal(id=null){
+  const row=state.externalResults.find(r=>r.id===id);
+  modal(`<h2>${row?'Изменить':'Добавить'} результат РТ / ЦТ / ЦЭ</h2><p>Результат хранится отдельно от тестов сайта. Дата и тестовый балл обязательны.</p>
+    <div class="form-grid"><label class="field"><span>Учащийся</span><select id="externalStudent">${state.students.map(st=>`<option value="${escapeAttr(st.id)}" ${row?.studentId===st.id||!row&&progressFilter.student===st.id?'selected':''}>${escapeAttr(st.displayName||st.login)}</option>`).join('')}</select></label>
+    <label class="field"><span>Тип тестирования</span><select id="externalType">${['РТ','ЦТ','ЦЭ'].map(type=>`<option ${row?.examType===type?'selected':''}>${type}</option>`).join('')}</select></label>
+    <label class="field"><span>Дата тестирования</span><input type="date" id="externalDate" value="${escapeAttr(row?.examDate||new Date().toISOString().slice(0,10))}"></label>
+    <label class="field"><span>Название / этап</span><input id="externalTitle" value="${escapeAttr(row?.title||'')}" placeholder="РТ. Этап 1"></label>
+    <label class="field"><span>Тестовый балл (0–100)</span><input type="number" id="externalScore" min="0" max="100" step="1" value="${row?.testScore??''}" required></label>
+    <label class="field"><span>Первичный (если известен)</span><input type="number" id="externalPrimary" min="0" max="62" step="1" value="${row?.primaryScore??''}" placeholder="Необязательно"></label></div>
+    <p id="externalGradePreview">Отметка: ${ceGrade(row?.testScore)??'—'}/10</p>
+    <div class="modal-actions"><button class="ghost" data-close>Отмена</button><button class="primary" id="externalSave">Сохранить результат</button></div>`);
+  $('#externalScore').addEventListener('input',()=>$('#externalGradePreview').textContent=`Отметка: ${ceGrade($('#externalScore').value)??'—'}/10`);
+  $('#externalSave').addEventListener('click',async()=>{
+    const scoreText=$('#externalScore').value.trim(),score=Number(scoreText),primaryText=$('#externalPrimary').value.trim();
+    const primary=primaryText===''?null:Number(primaryText),studentId=$('#externalStudent').value,examDate=$('#externalDate').value;
+    if(!studentId||!examDate||!/^\d{4}-\d{2}-\d{2}$/.test(examDate)||scoreText===''||!Number.isInteger(score)||score<0||score>100||primary!==null&&(!Number.isInteger(primary)||primary<0||primary>62))return toast('Проверьте дату и баллы: тестовый 0–100, первичный 0–62');
+    const payload={teacherId:state.user.uid,studentId,examType:$('#externalType').value,examDate,title:$('#externalTitle').value.trim(),testScore:score,primaryScore:primary,maxPrimary:primary===null?null:62,grade10:ceGrade(score),updatedAt:serverTimestamp()};
+    $('#externalSave').disabled=true;
+    try {if(id)await updateDoc(doc(db,'externalResults',id),payload);else await addDoc(collection(db,'externalResults'),{...payload,createdAt:serverTimestamp()});await loadAccountData();closeModal();render();toast('Результат сохранён')}
+    catch(error){console.error(error);$('#externalSave').disabled=false;toast('Не удалось сохранить результат. Проверьте правила Firestore.')}
+  });
+}
+function deleteExternalResult(id){
+  const row=state.externalResults.find(r=>r.id===id);if(!row)return;
+  modal(`<h2>Удалить результат?</h2><p>${escapeAttr(row.examType)} · ${escapeAttr(row.examDate)} · ${row.testScore}/100. Это не затронет попытки на сайте.</p><div class="modal-actions"><button class="ghost" data-close>Отмена</button><button class="danger" id="externalDeleteConfirm">Удалить</button></div>`);
+  $('#externalDeleteConfirm').onclick=async()=>{try{await deleteDoc(doc(db,'externalResults',id));await loadAccountData();closeModal();render();toast('Результат удалён')}catch(error){console.error(error);toast('Не удалось удалить результат')}};
+}
+function results(){const studentName=id=>state.students.find(s=>s.id===id)?.displayName||'Ученик',attempts=completedAttempts().sort((a,b)=>timestampValue(attemptMoment(b))-timestampValue(attemptMoment(a)));return `${progressPanel()}${sectionAnalysis()}<div class="section-title"><div><h2>Все попытки учащихся</h2><p>Предыдущие результаты не удаляются после отправки на доработку. Каждая повторная отправка хранится отдельной строкой.</p></div></div>${listToolbar("results")}<div class="card table-wrap filtered-list" style="margin-top:16px">${attempts.length?`<table class="table"><thead><tr><th>Ученик</th><th>Работа</th><th>Попытка</th><th>Дата</th><th>Первичный</th><th>Тестовый</th><th>Отметка</th><th>Статус</th><th>Действия</th></tr></thead><tbody>${attempts.map(a=>`<tr data-search="${escapeAttr(studentName(a.studentId))}" data-name="${escapeAttr(studentName(a.studentId))}" data-score="${Number(a.testScore)||0}" data-time="${timestampValue(attemptMoment(a))||0}" data-test="${escapeAttr(a.testTitle||`${a.year||2026} · Вариант ${a.variantNumber||"—"}`)}"><td><strong>${escapeAttr(studentName(a.studentId))}</strong></td><td>${escapeAttr(a.testTitle||`${a.year||2026} · Вариант ${a.variantNumber||'—'}`)}</td><td><strong>${escapeAttr(attemptLabel(a))}</strong></td><td>${attemptDate(a)}</td><td class="score">${a.primaryScore??'—'} / ${a.maxPrimary??62}</td><td class="score">${a.testScore??'—'} / 100</td><td class="score">${gradeDisplay(a)}</td><td>${attemptStatus(a)}</td><td><div class="result-actions"><button class="secondary" data-review-attempt="${escapeAttr(a.id)}">Открыть</button><button class="danger" data-delete-attempt="${escapeAttr(a.id)}">Удалить</button></div></td></tr>`).join('')}</tbody></table><p id="listEmpty" class="empty" hidden>По вашему запросу результаты не найдены.</p>`:'<div class="empty"><strong>Результатов пока нет</strong>После первой отправленной работы она появится здесь.</div>'}</div>`}
 
 function unreadMessagesCount(){return state.messages.filter(m=>m.senderId!==state.user?.uid&&(state.user?.role==='teacher'?!m.readByTeacher:!m.readByStudent)).length}
 function messageTime(message){const date=message.createdAt?.toDate?.();return date?date.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'только что'}
@@ -399,9 +548,13 @@ async function loadAccountData(){
     ]);
     state.students=studentDocs.docs.map(d=>({id:d.id,...d.data()})).filter(student=>student.active!==false);
     state.attempts=attemptDocs.docs.map(d=>({id:d.id,...d.data()}));
+    try {
+      const externalDocs=await getDocs(query(collection(db,'externalResults'),where('teacherId','==',state.user.uid)));
+      state.externalResults=externalDocs.docs.map(d=>({id:d.id,...d.data()}));
+    } catch(error) { console.warn('Внешние результаты не загружены; тесты работают:',error);state.externalResults=[]; }
   }else{
     const attemptDocs=await getDocs(query(collection(db,"attempts"),where("studentId","==",state.user.uid)));
-    state.students=[];
+    state.students=[];state.externalResults=[];
     state.attempts=attemptDocs.docs.map(d=>({id:d.id,...d.data()}));
   }
 }
