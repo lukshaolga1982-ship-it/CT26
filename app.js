@@ -201,6 +201,20 @@ function parseImportedTasks(raw){
     q.context=parts.join('\n').replace(/^Текст к заданиям\s*A15\s*[–-]\s*A18\s*:\s*/i,'').trim();
     q.block='A15–A18';
   }
+  // B9–B18: a single continuous extra-word passage shared by all ten tasks.
+  // Repeat the ENTIRE text in the task-text field for every item, preserving
+  // original line numbers so pupils can locate the line they must check.
+  const extraWordItems=questions.filter(q=>q.section==='B' && /^B(?:9|1[0-8])$/.test(q.id));
+  if(extraWordItems.length===10){
+    const fullPassage=extraWordItems.map(q=>`${q.id}. ${q.context.trim()}`).join('\n');
+    for(const q of extraWordItems){
+      q.prompt=`Найдите одно лишнее слово в строке ${q.id}.`;
+      q.context=fullPassage;
+      q.block='B9–B18';
+      q.type='input';
+      q.options=[];
+    }
+  }
   return questions;
 }
 function loadExternalScript(src){return new Promise((resolve,reject)=>{const tag=document.createElement('script');tag.src=src;tag.onload=resolve;tag.onerror=()=>reject(new Error('Не удалось загрузить модуль импорта'));document.head.appendChild(tag)})}
