@@ -376,9 +376,14 @@ async function loadCustomTests(){
 
 async function loadAccountData(){
   if(!state.user)return;
-  await loadCustomTests();
-  await loadMessages();
-  await loadLibrary();
+  try { await loadCustomTests(); }
+  catch(error) {
+    console.error('Не удалось загрузить тесты; кабинет продолжит работу:', error);
+    state.customTests=[]; state.builtInOverrides=[];
+    setTimeout(()=>toast('Не удалось загрузить список тестов. Проверьте индексы и правила Firestore.'),100);
+  }
+  try { await loadMessages(); } catch(error) {console.error('Ошибка сообщений:',error); state.messages=[];}
+  try { await loadLibrary(); } catch(error) {console.error('Ошибка справочников:',error); state.books=[]; state.reviews=[];}
   if(state.user.role==='teacher'){
     const [studentDocs,attemptDocs]=await Promise.all([
       getDocs(query(collection(db,"users"),where("createdBy","==",state.user.uid))),
@@ -407,8 +412,12 @@ watchAuth(async firebaseUser=>{
     if(profile.role==='teacher'){
       try{await publishBuiltInTests()}catch(syncError){console.error("Не удалось синхронизировать встроенные тесты",syncError);setTimeout(()=>toast('Кабинет открыт, но тесты не удалось синхронизировать'),100)}
     }
-    await loadAccountData();
-    if(profile.role==='teacher'&&await scoreSubmittedAttempts())await loadAccountData();
+    try { await loadAccountData(); }
+    catch(loadError) {console.error('Частичная ошибка загрузки кабинета:',loadError);setTimeout(()=>toast('Часть данных не загрузилась. Проверьте Firestore.'),100);}
+    if(profile.role==='teacher'){
+      try{ if(await scoreSubmittedAttempts())await loadAccountData(); }
+      catch(scoreError){console.error('Ошибка пересчёта результатов:',scoreError)}
+    }
     render();
   }catch(error){console.error(error);await logout();state.user=null;render();}
 });
