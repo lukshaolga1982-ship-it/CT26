@@ -362,11 +362,19 @@ async function loadCustomTests(){
     testDocs=await getDocs(query(collection(db,'tests'),where('teacherId','==',ownerId)));
   }else{
     // Server-side access filtering; the Firestore rules must match these two queries.
-    const [everyone,personal]=await Promise.all([
-      getDocs(query(collection(db,'tests'),where('teacherId','==',ownerId),where('status','==','published'),where('audienceMode','==','all'))),
-      getDocs(query(collection(db,'tests'),where('teacherId','==',ownerId),where('status','==','published'),where('allowedStudentIds','array-contains',state.user.uid)))
-    ]);
-    const map=new Map([...everyone.docs,...personal.docs].map(d=>[d.id,d]));
+    // Query each audience independently so one missing index does not hide the other group.
+    const queries=[
+      query(collection(db,'tests'),where('teacherId','==',ownerId),where('status','==','published'),where('audienceMode','==','all')),
+      query(collection(db,'tests'),where('teacherId','==',ownerId),where('status','==','published'),where('allowedStudentIds','array-contains',state.user.uid))
+    ];
+    const results=await Promise.allSettled(queries.map(q=>getDocs(q)));
+    const failures=results.filter(r=>r.status==='rejected');
+    if(failures.length===results.length){throw failures[0].reason;}
+    if(failures.length){
+      console.warn('Не все группы доступных тестов загружены:',...failures.map(r=>r.reason));
+      setTimeout(()=>toast('Часть тестов не загрузилась. Проверьте индексы Firestore.'),100);
+    }
+    const map=new Map(results.filter(r=>r.status==='fulfilled').flatMap(r=>r.value.docs).map(d=>[d.id,d]));
     testDocs={docs:[...map.values()]};
   }
   const all=testDocs.docs.map(snapshot=>({id:snapshot.id,...snapshot.data()})).filter(test=>test.teacherId===ownerId&&(state.user.role==='teacher'||studentCanAccessCustomTest(test))&&Array.isArray(test.questions));
