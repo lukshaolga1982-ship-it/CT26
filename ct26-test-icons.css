@@ -1,0 +1,36 @@
+/* CT26: только внешний вид кнопок тестов. JavaScript и события не изменяются. */
+.test-card .manage-actions { display:flex; flex-wrap:wrap; gap:9px; align-items:center; overflow:visible; }
+.test-card .manage-actions > button { position:relative; display:inline-flex; align-items:center; justify-content:center; flex:0 0 46px; width:46px; height:46px; min-width:46px; min-height:46px; padding:0!important; font-size:0!important; line-height:1!important; overflow:visible; white-space:normal; border-radius:12px; }
+.test-card .manage-actions > button::before { font-family:Arial,sans-serif; font-size:23px; font-weight:normal; line-height:1; display:block; }
+.test-card .manage-actions > button[data-toggle-test]::before { content:'🔒'; }
+.test-card .manage-actions > button[data-toggle-test]:has(~ button[data-test-audience])::before { content:'🔐'; }
+.test-card .manage-actions > button[data-test-audience]::before { content:'👥'; }
+.test-card .manage-actions > button[data-edit-test]::before,
+.test-card .manage-actions > button[data-edit-built-in]::before { content:'✎'; font-size:29px; }
+.test-card .manage-actions > button[data-regrade-test]::before { content:'↻'; font-size:31px; }
+.test-card .manage-actions > button[data-delete-test]::before { content:'▤'; font-size:24px; }
+/* Подсказки: текст указан только в CSS, функциональные надписи продолжают жить в HTML */
+@media (hover:hover) and (pointer:fine) {
+.test-card .manage-actions > button::after { position:absolute; left:50%; bottom:calc(100% + 9px); transform:translate(-50%,4px); display:block; white-space:nowrap; max-width:none; padding:8px 10px; background:#183d36; border-radius:8px; box-shadow:0 6px 16px #0002; color:white; font-size:12px!important; font-weight:600; line-height:1.3; pointer-events:none; opacity:0; visibility:hidden; z-index:80; transition:opacity .12s,transform .12s; }
+.test-card .manage-actions > button:is(:hover,:focus-visible)::after { opacity:1; visibility:visible; transform:translate(-50%,0); }
+.test-card .manage-actions > button[data-toggle-test]::after { content:'Открыть / закрыть доступ'; }
+.test-card .manage-actions > button[data-test-audience]::after { content:'Настроить доступ учащихся'; }
+.test-card .manage-actions > button[data-edit-test]::after { content:'Редактировать тест'; }
+.test-card .manage-actions > button[data-edit-built-in]::after { content:'Редактировать тест и ответы'; }
+.test-card .manage-actions > button[data-regrade-test]::after { content:'Пересчитать результаты'; }
+.test-card .manage-actions > button[data-delete-test]::after { content:'Удалить тест'; }
+}
+.test-card .manage-actions > button:focus-visible { outline:2px solid #048a68;outline-offset:3px; }
+/* Сенсорные устройства: оставляем короткие обозначения через доступный title CSS */
+@media (hover:none), (pointer:coarse) {
+.test-card .manage-actions { gap:6px; }
+.test-card .manage-actions > button { height:54px; min-height:54px; width:52px; min-width:52px; flex:1 1 52px; flex-direction:column; gap:4px; }
+.test-card .manage-actions > button::before { font-size:22px; }
+.test-card .manage-actions > button::after { font:600 9px/1.1 Arial,sans-serif; white-space:normal; text-align:center; }
+.test-card .manage-actions > button[data-toggle-test]::after { content:'Доступ'; }
+.test-card .manage-actions > button[data-test-audience]::after { content:'Ученики'; }
+.test-card .manage-actions > button[data-edit-test]::after,
+.test-card .manage-actions > button[data-edit-built-in]::after { content:'Правка'; }
+.test-card .manage-actions > button[data-regrade-test]::after { content:'Пересчёт'; }
+.test-card .manage-actions > button[data-delete-test]::after { content:'Удалить'; }
+}
