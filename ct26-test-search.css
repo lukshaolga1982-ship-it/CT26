@@ -1,0 +1,9 @@
+/* Isolated search UI. Existing app styling and behavior are untouched. */
+.ct26-test-search { margin: 12px 0 20px; max-width: 440px; }
+.ct26-test-search label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 7px; }
+.ct26-test-search-row { display: flex; gap: 8px; align-items: stretch; }
+.ct26-test-search-row input { box-sizing: border-box; width: 100%; min-width: 0; padding: 11px 13px; border: 1px solid #b9c9bf; border-radius: 10px; font: inherit; background: #fff; color: #17251e; }
+.ct26-test-search-row input:focus { outline: 2px solid #2c8860; outline-offset: 1px; }
+.ct26-test-search-row button { border: 1px solid #b9c9bf; border-radius: 10px; padding: 0 13px; background: #fff; color: #39493f; cursor: pointer; }
+.ct26-search-count { display: block; margin-top: 7px; color: #64766b; }
+article.test-card[hidden] { display: none !important; }
