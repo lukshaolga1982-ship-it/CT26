@@ -1,0 +1,9 @@
+/* Необязательное оформление раскрываемой истории попыток */
+.attempt-history { margin-top: 10px; max-width: 100%; }
+.attempt-history > summary { cursor: pointer; color: #087e69; font-size: 13px; font-weight: 650; padding: 7px 0; }
+.attempt-history > summary:hover { text-decoration: underline; }
+.attempt-history[open] { margin-bottom: 8px; }
+.attempt-history .table-wrap { overflow-x: auto; max-width: 100%; margin-top: 8px; border: 1px solid #dce7e4; border-radius: 9px; }
+.attempt-history .table { font-size: 12px; }
+.attempt-history .table th, .attempt-history .table td { padding: 9px; }
+.group-attempt-detail { margin-top: 3px; }
