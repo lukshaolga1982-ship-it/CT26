@@ -1,0 +1,164 @@
+/* CT26: компактные карточки тестов. Только оформление; Firestore и app.js не меняются. */
+/* На карточках не обрезаем крайние кнопки и подсказки. */
+#app:not(.ct26-library-list) .test-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+#app:not(.ct26-library-list) .test-card {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 252px;
+  overflow: visible;
+  padding: 17px 18px 16px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+}
+#app:not(.ct26-library-list) .test-card .stripe { pointer-events: none; }
+#app:not(.ct26-library-list) .test-card .test-no {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 10px;
+}
+#app:not(.ct26-library-list) .test-card .year-badge {
+  top: 17px;
+  right: 17px;
+  font-size: 10px;
+}
+#app:not(.ct26-library-list) .test-card > h3 {
+  min-width: 0;
+  margin: 14px 0 4px;
+  font-size: 16px;
+  line-height: 1.36;
+  overflow-wrap: anywhere;
+}
+#app:not(.ct26-library-list) .test-card > p {
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+#app:not(.ct26-library-list) .test-card .test-meta {
+  margin-top: auto;
+  padding-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+}
+#app:not(.ct26-library-list) .test-card .test-meta > button {
+  width: auto;
+  min-height: 37px;
+  padding: 8px 14px;
+  border-radius: 10px;
+}
+/* Ряд действий делаем отдельной компактной панелью: 5 ячеек, ничего не уезжает за край. */
+#app:not(.ct26-library-list) .test-card .manage-actions {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0,1fr));
+  gap: 7px;
+  margin-top: 11px;
+  overflow: visible;
+}
+#app:not(.ct26-library-list) .test-card .manage-actions > button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 44px;
+  height: 44px;
+  padding: 4px !important;
+  margin: 0;
+  border-radius: 10px;
+  flex: none !important;
+  white-space: normal;
+  font-size: 0 !important;
+  line-height: 1;
+}
+#app:not(.ct26-library-list) .test-card .manage-actions > button::before {
+  display: block;
+  font-family: Arial,sans-serif;
+  font-size: 21px !important;
+  font-weight: 600;
+  line-height: 1;
+}
+#app:not(.ct26-library-list) .test-card .manage-actions > button[data-toggle-test]::before { content: '🔒'; font-size: 18px !important; }
+#app:not(.ct26-library-list) .test-card .manage-actions > button[data-test-audience]::before { content: '♙'; font-size: 25px !important; }
+#app:not(.ct26-library-list) .test-card .manage-actions > button[data-edit-test]::before,
+#app:not(.ct26-library-list) .test-card .manage-actions > button[data-edit-built-in]::before { content: '✎'; font-size: 24px !important; }
+#app:not(.ct26-library-list) .test-card .manage-actions > button[data-regrade-test]::before { content: '↻'; font-size: 26px !important; }
+#app:not(.ct26-library-list) .test-card .manage-actions > button[data-delete-test]::before { content: '×'; font-size: 25px !important; }
+#app:not(.ct26-library-list) .test-card .manage-actions > button[data-delete-test] {
+  background: #fff0f0;
+  color: #c53b43;
+}
+#app:not(.ct26-library-list) .test-card .manage-actions > button:focus-visible {
+  outline: 2px solid #008c74;
+  outline-offset: 3px;
+}
+/* Подсказки при наведении и с клавиатуры */
+@media (hover:hover) and (pointer:fine) {
+  #app:not(.ct26-library-list) .test-card .manage-actions > button::after {
+    position: absolute;
+    z-index: 40;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translate(-50%, 4px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    width: max-content;
+    max-width: 220px;
+    padding: 7px 9px;
+    border-radius: 8px;
+    background: #1b453a;
+    color: white;
+    box-shadow: 0 6px 18px #0002;
+    white-space: normal;
+    text-align: center;
+    font: 600 12px/1.25 Arial,sans-serif !important;
+    transition: opacity .12s ease, transform .12s ease;
+  }
+  #app:not(.ct26-library-list) .test-card .manage-actions > button:is(:hover,:focus-visible)::after {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%,0);
+  }
+}
+#app:not(.ct26-library-list) .test-card .manage-actions > button[data-toggle-test]::after { content: 'Открыть / закрыть доступ'; }
+#app:not(.ct26-library-list) .test-card .manage-actions > button[data-test-audience]::after { content: 'Учащиеся'; }
+#app:not(.ct26-library-list) .test-card .manage-actions > button[data-edit-test]::after,
+#app:not(.ct26-library-list) .test-card .manage-actions > button[data-edit-built-in]::after { content: 'Редактировать'; }
+#app:not(.ct26-library-list) .test-card .manage-actions > button[data-regrade-test]::after { content: 'Пересчитать результаты'; }
+#app:not(.ct26-library-list) .test-card .manage-actions > button[data-delete-test]::after { content: 'Удалить'; }
+@media (hover:none), (pointer:coarse) {
+  #app:not(.ct26-library-list) .test-card .manage-actions > button { height: 56px; gap: 4px; }
+  #app:not(.ct26-library-list) .test-card .manage-actions > button::after {
+    position: static;
+    display: block;
+    content: '';
+    background: none;
+    box-shadow: none;
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    width: auto;
+    padding: 0;
+    color: inherit;
+    font: 600 9px/1.1 Arial,sans-serif !important;
+    text-align: center;
+  }
+}
+@media(max-width:900px) {
+  #app:not(.ct26-library-list) .test-grid { grid-template-columns: 1fr; }
+}
+@media(max-width:440px) {
+  #app:not(.ct26-library-list) .test-card { padding: 14px 13px; }
+  #app:not(.ct26-library-list) .test-card .manage-actions { gap: 4px; }
+}
