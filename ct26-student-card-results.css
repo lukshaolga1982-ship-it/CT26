@@ -1,0 +1,18 @@
+/* Only student-facing completion badges; does not change test actions. */
+.student-card-result {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  color: #176c55;
+  background: #e4f6eb;
+  font-size: 12px;
+  line-height: 1.35;
+  max-width: 100%;
+}
+.student-card-result strong { font-weight: 800; font-variant-numeric: tabular-nums; }
+.student-card-result small { font-size: 11px; color: #537b70; }
+.student-card-result-pending { color: #776327; background: #fff4d9; }
+.test-card .test-meta { flex-wrap: wrap; }
