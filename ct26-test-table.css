@@ -1,0 +1,29 @@
+/* Table view for teacher's custom tests only; all existing app styles remain intact. */
+.ct26-tests-table-shell { margin: 16px 0 22px; min-width: 0; width: 100%; }
+.ct26-tests-table-toolbar {display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+.ct26-tests-table-search {width:min(100%,410px);border:1px solid #c7dbd4;background:#fff;border-radius:11px;padding:12px 14px;color:#173f39;font:inherit;outline-offset:2px;}
+.ct26-tests-table-search:focus {outline:2px solid #4dcba3;}
+.ct26-tests-table-count {font-size:12px;color:#65867f;}
+.ct26-tests-table-scroll {overflow-x:auto;max-width:100%;border:1px solid #d5e8e1;border-radius:16px;background:#fff;}
+.ct26-tests-table {width:100%;min-width:930px;border-collapse:collapse;table-layout:fixed;color:#18433e;font-size:13px;}
+.ct26-tests-table th {padding:15px 11px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.055em;color:#688b84;background:#f1f8f5;font-weight:700;border-bottom:1px solid #d5e8e1;}
+.ct26-tests-table th:first-child {text-align:left;padding-left:20px;width:34%;}
+.ct26-tests-table th:nth-child(2) {width:7%;}
+.ct26-tests-table th:nth-child(3) {width:12%;}
+.ct26-tests-table th:nth-child(4) {width:9%;}
+.ct26-tests-table th:nth-child(n+5) {width:9.5%;}
+.ct26-tests-table tr + tr {border-top:1px solid #e6efeb;}
+.ct26-tests-table tbody tr:hover {background:#f9fcfa;}
+.ct26-tests-table td {padding:11px 8px;text-align:center;vertical-align:middle;}
+.ct26-tests-table td:first-child {padding-left:18px;text-align:left;}
+.ct26-col-title {display:flex;align-items:center;gap:12px;}
+.ct26-table-number {flex:none;display:grid;place-items:center;background:#d9f6ea;color:#147762;border-radius:9px;width:35px;height:35px;font-weight:700;}
+.ct26-table-title-box {min-width:0;}
+.ct26-table-title-box h3 {font-size:14px;line-height:1.3;margin:0 0 3px;font-weight:700;color:#18433e;overflow-wrap:anywhere;}
+.ct26-table-title-box p {font-size:11px;line-height:1.3;margin:0;color:#75928c;overflow-wrap:anywhere;}
+.ct26-col-access .status {display:inline-block;margin:0 5px 0 0;vertical-align:middle;}
+.ct26-tests-table .ct26-table-action {position:relative;display:inline-flex!important;align-items:center;justify-content:center;min-width:38px;width:38px;height:38px;max-width:38px;padding:0!important;margin:3px;border-radius:10px;font-size:17px!important;line-height:1!important;white-space:nowrap;overflow:visible;vertical-align:middle;box-shadow:none;}
+.ct26-tests-table .ct26-col-delete .ct26-table-action {background:#fff0f0;color:#cb4343;}
+.ct26-tests-table .ct26-table-action:focus-visible {outline:2px solid #147762;outline-offset:2px;}
+.ct26-tests-table tbody tr[hidden] {display:none!important;}
+@media(max-width:680px){.ct26-tests-table-toolbar {align-items:stretch;}.ct26-tests-table-search {width:100%;}.ct26-tests-table th:first-child {width:32%;}.ct26-tests-table {min-width:840px;}}
