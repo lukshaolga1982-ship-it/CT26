@@ -450,6 +450,26 @@ function parseImportedTasks(raw){
   }
   for(const line of lines){
     if(/^Часть\s*[BВБ]\b/i.test(line))section='B';
+    // Word imports may carry a separate teacher-only key for the preceding task.
+    // Keys are consumed, not added to the pupil-facing question text.
+    const keyLine=line.match(/^(?:КЛЮЧ|ОТВЕТ)\s+([ABАВ])\s*(\d{1,2})\s*:\s*(.+)$/i);
+    if(keyLine){
+      const letter=/[BВ]/i.test(keyLine[1])?'B':'A';
+      const keyId=letter+Number(keyLine[2]);
+      if(!current||current.id!==keyId)throw new Error('Ключ '+keyId+' расположен не после своего задания');
+      const value=keyLine[3].trim();
+      if(letter==='A'){
+        const answerIndex=Number(value);
+        if(!Number.isInteger(answerIndex)||answerIndex<1||answerIndex>current.options.length)
+          throw new Error('Неверный номер ответа в ключе '+keyId);
+        current.accepted=[current.options[answerIndex-1]];
+      }else{
+        // Multiple accepted answers can be separated by | in the key line.
+        current.accepted=value.split('|').map(item=>item.trim()).filter(Boolean);
+        if(!current.accepted.length)throw new Error('Пустой ключ '+keyId);
+      }
+      continue;
+    }
     const m=line.match(questionStart);
     if(m){
       if(current)questions.push(current);
@@ -516,7 +536,8 @@ async function importTestFromFile(e){
   if(!questions.length)throw new Error('В документе не удалось найти текст (возможно, это скан PDF)');
   const title=file.name.replace(/\.(docx|pdf)$/i,'');
   const missing=questions.filter(q=>q.section==='A'&&q.options.length<2);
-  toast(`Найдено ${questions.length} заданий; без вариантов ответа: ${missing.length}. Проверьте текст и ответы.`);
+  const keyed=questions.filter(q=>(q.accepted||[]).length).length;
+  toast(`Найдено ${questions.length} заданий; ключи: ${keyed}; без вариантов: ${missing.length}. Проверьте ответы.`);
   manualTestModal({title,questions,timeLimit:120,structure:'Импортировано из '+file.name});
  }catch(err){console.error(err);toast(err.message||'Ошибка импорта файла')}
 }
