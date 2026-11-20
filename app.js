@@ -404,11 +404,12 @@ async function toggleTestAccess(testId){
   try{await updateDoc(doc(db,'tests',testId),{status:next,updatedAt:serverTimestamp()});await loadCustomTests();render();toast(next==='published'?'Тест открыт для учащихся':'Доступ к тесту закрыт')}catch(e){console.error(e);toast('Не удалось изменить доступ')}
 }
 
-// Import is deliberately reviewed before publishing. Parsers do not infer correct keys.
+// The teacher's import-ready Word files include explicit "КЛЮЧ A1: 2" lines.
+// A numeric key in part A is an option number; the saved key must be its text.
 function parseImportedTasks(raw){
   // Import paragraphs may contain inline options, tabs, or one option per line.
   const lines=raw.replace(/\r/g,'').split('\n').map(x=>x.trim()).filter(Boolean);
-  const questions=[];let current=null;let section='A';
+  const questions=[];let current=null;let section='A';const importedKeys=new Map();
   const questionStart=/^([ABАВБ])\s*(\d{1,2})\s*[.)]\s*(.*)$/i;
   const optionStart=/(^|\s)([1-5])\s*[).]\s*/g;
   function appendLine(q,line){
@@ -442,6 +443,12 @@ function parseImportedTasks(raw){
     q.context+=(q.context?'\n':'')+line;
   }
   for(const line of lines){
+    const key=line.match(/^КЛЮЧ\s*([ABАВБ])\s*(\d{1,2})\s*[:：-]\s*(.+)$/i);
+    if(key){
+      const prefix=/[BВБ]/i.test(key[1])?'B':'A';
+      importedKeys.set(prefix+Number(key[2]),key[3].trim());
+      continue; // A key is metadata, not part of the following question.
+    }
     if(/^Часть\s*[BВБ]\b/i.test(line))section='B';
     const m=line.match(questionStart);
     if(m){
@@ -452,6 +459,19 @@ function parseImportedTasks(raw){
     }else if(current)appendLine(current,line);
   }
   if(current)questions.push(current);
+  for(const q of questions){
+    const rawKey=importedKeys.get(q.id);
+    if(!rawKey)continue;
+    if(q.section==='A'){
+      const optionNumber=Number(rawKey);
+      const answer=Number.isInteger(optionNumber)&&optionNumber>=1&&optionNumber<=q.options.length
+        ?q.options[optionNumber-1]:q.options.find(o=>o.toLowerCase()===rawKey.toLowerCase());
+      if(answer!==undefined)q.accepted=[answer];
+    }else{
+      q.accepted=[rawKey];
+    }
+    if(q.accepted.length)q.answer=q.accepted[0];
+  }
   // Reading comprehension only (A15–A18 in the provided RT documents):
   // The DOCX stores the reading passage, then a newline and the question.
   // Keep that question in the instruction (prompt), the passage in the task text
